@@ -1,5 +1,4 @@
-#include "pong.h"
-#include "hls_opencv.h" // This must be included in the testbench ONLY.
+#include "pongbot.h"
 
 int main(int argc, char const *argv[]) {
   AxiStreamRGB pongStream;

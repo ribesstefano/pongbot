@@ -1,9 +1,8 @@
-#ifndef GAME_H_
-#define GAME_H_
+#ifndef GAME_GAME_H_
+#define GAME_GAME_H_
 
 #include <hls_stream.h>
-#include <hls_video.h> // This must be included in the source files.
-// #include <hls_opencv.h> // This must be included in the testbench ONLY.
+#include <hls_video.h> // This must be included in the source/syn files only
 
 #include "game/point.h"
 #include "game/ball.h"
@@ -21,4 +20,4 @@ typedef hls::Mat<MAX_HEIGHT, MAX_WIDTH, HLS_8UC3> ImageRGB;
 typedef hls::Window<MAX_HEIGHT, MAX_WIDTH, PixelRGB> WindowRGB;
 typedef hls::Window<1, MAX_WIDTH, PixelRGB> PlayerWindowRGB;
 
-#endif // end GAME_H_
+#endif // end GAME_GAME_H_

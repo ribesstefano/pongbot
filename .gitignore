@@ -1,4 +1,5 @@
-./hls_prj
-./build
-./bin/**
-./data/pong_*
+hls_prj
+build
+bin/*
+data/pong_*
+data/windows*
