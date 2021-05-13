@@ -1,0 +1,4 @@
+./hls_prj
+./build
+./bin/**
+./data/pong_*
