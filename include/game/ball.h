@@ -1,8 +1,156 @@
-#ifndef BALL_H_
-#define BALL_H_
+#ifndef GAME_BALL_H_
+#define GAME_BALL_H_
 
-#include "game/point.h"
 #include <iostream>
+#include "hls_math.h"
+#include "game_params.h"
+#include "point.h"
+
+static const float Pi = 3.14159265358979323846;
+
+template <typename T>
+class BallV2 {
+private:
+  T init_v() {
+    T v = this->speed_; // np.random.randint(-this->speed, this->speed);
+    while (v == 0) {
+      v = this->speed_ + 1; // np.random.randint(-this->speed, this->speed);
+    }
+    return v * sqrt(2);
+  }
+
+public:
+  BallV2(const T x, const T y, const T time, const T speed,
+    const T max_bounce_angle, const T radius) {
+    this->x_ = x;
+    this->y_ = y;
+    this->speed_ = speed;
+    this->vx_ = this->init_v();
+    this->vy_ = this->init_v();
+    this->init_x_ = x;
+    this->init_y_ = y;
+    this->time_ = time;
+    this->max_bounce_angle_ = max_bounce_angle * Pi / 180.0; // convert to radiants;
+    this->radius_ = radius;
+  }
+  ~BallV2() {}
+
+  void reset_pos() {
+    this->x_ = this->init_x_;
+    this->y_ = this->init_y_;
+    this->vx_ = this->init_v();
+    this->vy_ = this->init_v();
+  }
+
+  void update_velocity(const T collision_y, const T player_y, const T bar_heigth) {
+      // The collision_y: y-coord where the ball collided
+      T rel_intersect_y = player_y - collision_y + bar_heigth / 2; // In [-bar/2, bar/2] interval
+      rel_intersect_y = rel_intersect_y  / (bar_heigth / 2); // Normalize, now in [-1, 1] interval
+      //  NOTE: The angle will be at its maximum when collision_y is either 
+      // equal to 'player_y' or 'player_y + bar_heigth'
+      T bounce_angle = rel_intersect_y * this->max_bounce_angle_;
+      // NOTE: vx should never go to zero, otherwise the ball will go in a
+      // vertical direction (90 degrees).
+      T vx_tmp = this->speed_ * cos(bounce_angle);
+      T change_direction = this->vx_ > 0 ? -1 : 1;
+      this->vx_ = vx_tmp != 0 ? vx_tmp * change_direction : -this->vx_;
+      this->vy_ = this->speed_ * -sin(bounce_angle);
+  }
+
+  PlayerStatusType check_player_collision(const T player1_y, const T player2_y,
+      const T wall_player1, const T wall_player2, const T bar_heigth) {
+    PlayerStatusType players_status;
+    players_status.player1 = kNoChanges;
+    players_status.player2 = kNoChanges;
+    if (this->x_ - this->radius_ <= wall_player1) {
+      if (player1_y < this->y_ < player1_y + bar_heigth) {
+        this->update_velocity(this->y_, player1_y, bar_heigth);
+        this->x_ = wall_player1 + this->radius_;
+        players_status.player1 = kHitBall;
+        players_status.player2 = kNoChanges;
+        // return {'player1':'hit ball', 'player2':'no changes'}
+      } else {
+        this->reset_pos();
+        players_status.player1 = kLost;
+        players_status.player2 = kWon;
+        // return {'player1':'lost', 'player2':'won'}
+      }
+    }
+    if (this->x_ + this->radius_ >= wall_player2) {
+      if (player2_y < this->y_ < player2_y + bar_heigth) {
+        this->update_velocity(this->y_, player2_y, bar_heigth);
+        this->x_ = wall_player2 - this->radius_;
+        players_status.player1 = kNoChanges;
+        players_status.player2 = kHitBall;
+        // return {'player1':'no changes', 'player2':'hit ball'}
+      } else {
+        this->reset_pos();
+        players_status.player1 = kWon;
+        players_status.player2 = kLost;
+        // return {'player1':'won', 'player2':'lost'}
+      }
+    }
+    return players_status;
+  }
+
+  PlayerStatusType update_pos(const T player1_y, const T player2_y,
+      const T wall_player1, const T wall_player2,
+      const T bar_heigth, const T screen_heigth) {
+    // '''
+    // Update position THEN change velocity and position.
+    // '''
+    // NOTE: time is the time since last frame, in milliseconds (therefore
+    // the velocities are in pixels per millisecond).
+    this->x_ += this->vx_ * this->time_;
+    this->y_ += this->vy_ * this->time_;
+    this->check_height_collision(screen_heigth);
+    return this->check_player_collision(player1_y, player2_y,
+                                             wall_player1, wall_player2,
+                                             bar_heigth);
+  }
+
+  void check_height_collision(const T screen_heigth) {
+    if (this->y_ - this->radius_ <= 0) {
+        this->vy_ = -this->vy_;
+        this->y_ = this->radius_;
+    }
+    if (this->y_ + this->radius_ >= screen_heigth) {
+        this->vy_ = -this->vy_;
+        this->y_ = screen_heigth - this->radius_;
+    }
+  }
+
+  template <int H, int W, typename I>
+  void draw_square(ImageBuffer<H, W, I> &img) {
+#pragma HLS PIPELINE II=1
+    for (int i = 0; i < img.rows; ++i) {
+      for (int j = 0; j < img.cols; ++j) {
+        if (i > this->x_ - this->radius_ && i < this->x_ + this->radius_) {
+          if (j > this->y_ - this->radius_ && j < this->y_ + this->radius_) {
+            img[i][j] = WHITE_PIXEL;
+            // img.buffer_[i][j] = WHITE_PIXEL;
+          }
+        }
+      }
+    }
+  }
+
+  template <int H, int W, typename I>
+  void draw(ImageBuffer<H, W, I> &img, const T screen_h, const T screen_w) {
+    this->draw_square(img);
+  }
+  
+  T x_;
+  T y_;
+  T speed_;
+  T vx_;
+  T vy_;
+  T init_x_;
+  T init_y_;
+  T time_;
+  T max_bounce_angle_;
+  T radius_;
+};
 
 template <int RadiusInPixes = 2>
 class Ball {
@@ -157,4 +305,4 @@ private:
   const int bar_width_;
 };
 
-#endif // end BALL_H_
+#endif // end GAME_BALL_H_

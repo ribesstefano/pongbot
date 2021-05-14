@@ -3,7 +3,7 @@
 ## Overview
 
 This project includes the game of Pong running on a Digilent PYNQ-Z1 FPGA board.
-The player is challenged to play against a bot trained with Deep-Q Reinforcement Learning (DQL).
+The player is challenged to play against a bot trained with Deep-Q Reinforcement Learning (DQRL).
 
 ### Software/AI
 

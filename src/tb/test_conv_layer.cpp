@@ -60,13 +60,5 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO] Num errors: " << num_errors << " ("
             << float(num_errors) / float(num_kernels * C * R) * 100.0 << "%)"
             << std::endl;
-
-
-  // ActivationType image[IMAGE_C][IMAGE_H][IMAGE_W] = {ActivationType(rand())};
-  ActivationType image[IMAGE_C * IMAGE_H * IMAGE_W] = {ActivationType(rand())};
-  int action = 0;
-  conv_net(image, action);
-  std::cout << action << std::endl;
-
   return num_errors;
 }

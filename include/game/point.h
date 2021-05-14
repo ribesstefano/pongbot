@@ -1,5 +1,5 @@
-#ifndef POINT_H_
-#define POINT_H_
+#ifndef GAME_POINT_H_
+#define GAME_POINT_H_
 
 #include<cassert>
 
@@ -114,4 +114,4 @@ public:
 typedef Point<int, 2> Point2D;
 typedef Point<int, 3> Point3D;
 
-#endif
+#endif // end GAME_POINT_H_

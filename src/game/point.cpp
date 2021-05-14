@@ -1,1 +1,1 @@
-#include "game/point.h"
+#include "point.h"
