@@ -4,34 +4,38 @@
 int main(int argc, char const *argv[]) {
   const int W = 64;
   const int H = 64;
-  const int num_steps = 8;
+  const int num_steps = 16;
 
-  const unsigned char screen_h = H;
-  const unsigned char screen_w = W;
-  const unsigned char score_w = 8;
-  const unsigned char score_h = 8;
-  const unsigned char bar_w = 2;
-  const unsigned char bar_h = 6;
-  const unsigned char ball_x = H / 2;
-  const unsigned char ball_y = W / 2;
+  const int screen_h = H;
+  const int screen_w = W;
+  const int score_w = W / 8;
+  const int score_h = H / 8;
+  const int bar_w = score_w / 4;
+  const int bar_h = score_h / 4 * 3;
+  const int ball_x = H / 2;
+  const int ball_y = W / 2;
   const unsigned char ball_speed = 3;
   const unsigned char ball_max_bounce_angle = 80;
   const unsigned char ball_time = 1;
-  Game<H, W, unsigned char> env = Game<H, W, unsigned char>(screen_h, screen_w,
-    score_w, score_h, bar_w, bar_h, ball_x, ball_y, ball_speed,
-    ball_max_bounce_angle, ball_time);
+  typedef Game<H, W, GameRealType, unsigned char> EnvType;
+  EnvType env = EnvType(screen_h, screen_w, score_w, score_h, bar_w, bar_h,
+    ball_x, ball_y, ball_speed, ball_max_bounce_angle, ball_time);
 
   for (int i = 0; i < num_steps; ++i) {
-    auto tmp = env.step(1, -1);
-    env.draw(true);
+    std::cout << "[INFO] Step n." << i << std::endl;
+    std::cout << "[INFO] x = " << env._ball._x;
+    std::cout << "\ty = " << env._ball._y << std::endl;
+    env.step(1, -1);
+    env.draw();
     std::string filename(std::string(IMAGE_OUTPUT_PATH) + "/game_" + std::to_string(i) + ".bmp");
-    cv::Mat gameImage = cv::Mat(H, W, CV_8UC1, env.screen_img_.buffer_);
+    cv::Mat gameImage = cv::Mat(H, W, CV_8UC1, env._state.information._buffer);
     cv::imwrite(filename.c_str(), gameImage);
+    env.reset_draw();
   }
 
   // IplImage* gameImage = cvCreateImage(cvSize(W, H), 8, 1);
   // cvSet(gameImage, cvScalar(0, 0, 0));
-  // memcpy(gameImage->imageData, game.screen_img_.buffer_, sizeof(unsigned char) * H * W);
+  // memcpy(gameImage->imageData, game._screen_img._buffer, sizeof(unsigned char) * H * W);
   // cvSaveImage(filename.c_str(), gameImage);
   // cvReleaseImage(&gameImage);
   

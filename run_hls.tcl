@@ -63,17 +63,20 @@ proc grep {re lines fin fout} {
 }
 
 set PRJ_PATH [pwd]
-cd hls_prj
+
+exec mkdir -p -- ./hls
+exec mkdir -p -- ./hls/reports
+cd hls
 
 # ==============================================================================
 # Setups
 # ==============================================================================
 set reset_project 1
-set csim 1
+set csim 0
 set build_only 0
 set synth 1
 set cosim 0
-set export 1
+set export 0
 set place_and_route 0
 set report_info 1
 # ==============================================================================
@@ -96,9 +99,9 @@ if {${use_zedboard}} {
 # ==============================================================================
 # Top function name, testbench file
 # ==============================================================================
-# set TOP "hls_fifo"
-set TOP "pong"
-set TB "hdmi_out"
+set TOP "hls_game"
+set TB "test_game"
+set SRC_DIR "game" ;# Or just leave it empty for including all sub-dirs too.
 # ==============================================================================
 # Hardware parameters
 # ==============================================================================
@@ -135,10 +138,11 @@ set ARGV ""
 # ==============================================================================
 # NOTE(21/02/2019): the '-fno-builtin' is suggested by Xilinx when using
 # the set_directive_resource option.
+
 if {${cosim}} {
-    set CFLAGS "-O3 -g -std=c++0x -fno-builtin -I${PRJ_PATH}/include/ -DCOSIM_DESIGN ${DEFINES} -I/usr/local/include"
+    set CFLAGS "-O3 -g -std=c++0x -fno-builtin -I${PRJ_PATH}/include/${SRC_DIR}/ -DCOSIM_DESIGN ${DEFINES} -I/usr/local/include"
 } else {
-    set CFLAGS "-O3 -g -std=c++0x -fno-builtin -I${PRJ_PATH}/include/ ${DEFINES} -I/usr/local/include"
+    set CFLAGS "-O3 -g -std=c++0x -fno-builtin -I${PRJ_PATH}/include/${SRC_DIR}/ ${DEFINES} -I/usr/local/include"
 }
 # ==============================================================================
 # Open Project and Add Files
@@ -151,39 +155,33 @@ if {${reset_project}} {
 
 set_top ${TOP}
 
+set HLS_REPORT_PATH "hls_${PROJECT_NAME}/solution_${TOP}/syn/report/"
+set REPORT_DIR "${PRJ_PATH}/hls/reports"
+set REPORT_FILE_PATH "${PRJ_PATH}/hls/reports/"
+set VIVADO_LIB "C:/Xilinx/Vivado/2018.3/include/"
+set BLAS_LIB "C:/Users/ste/.caffe/dependencies/libraries_v140_x64_py27_1.1.0/libraries/lib/libopenblas.a"
+set BLAS_LIB_DIR "C:/Users/ste/.caffe/dependencies/libraries_v140_x64_py27_1.1.0/libraries/lib"
+
+# Get Source Files (1st argument: regex, 2nd argument: excluded directory)
+set src_files [findFiles "${PRJ_PATH}/src/${SRC_DIR}/" "*.cpp" "${PRJ_PATH}/src/tb"]
+set include_files [findFiles "${PRJ_PATH}/include/${SRC_DIR}/" "*.h" "${PRJ_PATH}/include/tb"]
+
 if {${reset_project}} {
-    set HLS_REPORT_PATH "hls_${PROJECT_NAME}/solution_${TOP}/syn/report/"
-    set REPORT_DIR "${PRJ_PATH}/hls_prj/reports"
-    set REPORT_FILE_PATH "${PRJ_PATH}/hls_prj/reports/"
-    set VIVADO_LIB "C:/Xilinx/Vivado/2018.3/include/"
-    set BLAS_LIB "C:/Users/ste/.caffe/dependencies/libraries_v140_x64_py27_1.1.0/libraries/lib/libopenblas.a"
-    set BLAS_LIB_DIR "C:/Users/ste/.caffe/dependencies/libraries_v140_x64_py27_1.1.0/libraries/lib"
+    foreach f ${src_files} {
+        add_files ${f} -cflags ${CFLAGS}
+    }
+    foreach f ${include_files} {
+        add_files ${f} -cflags ${CFLAGS}
+    }
 
-    # Get Source Files (1st argument: regex, 2nd argument: excluded directory)
-    set src_files [findFiles "${PRJ_PATH}/src" "*.cpp" "${PRJ_PATH}/src/testbenches"]
-    set include_files [findFiles "${PRJ_PATH}/include" "*.h" "${PRJ_PATH}/include/testbenches"]
-
-    # foreach f ${src_files} {
-    #     add_files ${f} -cflags ${CFLAGS}
-    # }
-    # foreach f ${include_files} {
-    #     add_files ${f} -cflags ${CFLAGS}
-    # }
-
-    add_files ${PRJ_PATH}/src/axis_lib.cpp -cflags ${CFLAGS}
-    add_files ${PRJ_PATH}/include/axis_lib.h -cflags ${CFLAGS}
-
-    add_files ${PRJ_PATH}/src/point.cpp -cflags ${CFLAGS}
-    add_files ${PRJ_PATH}/include/point.h -cflags ${CFLAGS}
-
-    add_files ${PRJ_PATH}/src/hdmi_out.cpp -cflags ${CFLAGS}
-    add_files ${PRJ_PATH}/include/hdmi_out.h -cflags ${CFLAGS}
+    # add_files ${PRJ_PATH}/src/axis_lib.cpp -cflags ${CFLAGS}
+    # add_files ${PRJ_PATH}/include/axis_lib.h -cflags ${CFLAGS}
 
     # Add Testbench Files
     if {${csim} || ${cosim}} {
         # TB Files (to avoid including multiple files with main() in them)
-        add_files -tb ${PRJ_PATH}/src/test_hdmi.cpp -cflags ${CFLAGS}
-        add_files -tb ${PRJ_PATH}/include/test_hdmi.h -cflags ${CFLAGS}
+        add_files -tb ${PRJ_PATH}/src/tb/${TB}.cpp -cflags ${CFLAGS}
+        add_files -tb ${PRJ_PATH}/include/tb/${TB}.h -cflags ${CFLAGS}
     }
 }
 
@@ -303,7 +301,7 @@ if {${export}} {
 }
 
 puts "================================================================"
-puts "\[INFO\] Closing project: ../../hls_projects/hls_${PROJECT_NAME}"
+puts "\[INFO\] Closing project: ./hls/hls_${PROJECT_NAME}"
 puts "================================================================"
 
 exit

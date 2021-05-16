@@ -27,30 +27,27 @@ static const int kBlackPixel = 0;
 template <int H, int W, typename T>
 class ImageBuffer {
 public:
-  ImageBuffer(): rows(H), cols(W) {
-#pragma HLS PIPELINE II=1
+  ImageBuffer(): rows(H), cols(W), size(H * W) {
+    Init_Image:
     for (int i = 0; i < H; ++i) {
       for (int j = 0; j < W; ++j) {
-        this->buffer_[i * W + j] = BLACK_PIXEL;
-        // this->buffer_[i][j] = BLACK_PIXEL;
+#pragma HLS PIPELINE II=1
+        this->_buffer[i * W + j] = BLACK_PIXEL;
+        // this->_buffer[i][j] = BLACK_PIXEL;
       }
     }
   };
 
   ~ImageBuffer() {};
 
-  // IplImage* getCvImage() {
-  //   IplImage* gameImage = cvCreateImage(cvSize(W, H), 8, 1);
-  //   return gameImage;
-  // }
-
   T* operator[](const int i) {
-    return reinterpret_cast<T*>(&(this->buffer_[i * W]));
+    return reinterpret_cast<T*>(&(this->_buffer[i * W]));
   }
 
   int rows;
   int cols;
-  T buffer_[H * W];
+  int size;
+  T _buffer[H * W];
 };
 
 typedef enum PlayerStatus_ {kHitBall, kWon, kLost, kNoChanges} PlayerStatus;
@@ -61,5 +58,7 @@ typedef struct PlayerStatusType {
 
 typedef hls::Mat<MAX_HEIGHT, MAX_WIDTH, HLS_8UC1> CvImage;
 typedef ImageBuffer<MAX_HEIGHT, MAX_WIDTH, unsigned char> Image;
+
+typedef ap_fixed<8, 6> GameRealType;
 
 #endif // end GAME_GAME_PARAMS_H_
