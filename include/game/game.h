@@ -250,12 +250,14 @@ public:
     this->_play_as_best_player = tmp; // Restore
   }
 
-  void draw() {
+  void draw(const bool draw_scores_and_midfield = true) {
     this->draw_bar(this->_player1_y, this->_wall_player1 - this->_bar_w, this->_state.information);
     this->draw_bar(this->_player2_y, this->_wall_player2, this->_state.information);
     this->_ball.draw(this->_screen_h, this->_screen_w, this->_state.information);
-    this->draw_midfield(this->_state.information);
-    this->draw_scores(this->_state.information);
+    if (draw_scores_and_midfield) {
+      this->draw_midfield(this->_state.information);
+      this->draw_scores(this->_state.information);
+    }
   }
 
   void reset_draw() {
@@ -269,13 +271,30 @@ public:
     this->draw_cv_mat(this->_state.information, info_img);
   }
 
-  void draw_cv_mat(const ImageType img, HlsImageType& out_img) {
+  void draw_cv_mat(ImageType& img, HlsImageType& out_img, bool reset_img = false) {
     for (int i = 0; i < img.size; ++i) {
 #pragma HLS PIPELINE II=1
       HlsPixelType pixel = HlsPixelType(img._buffer[i]);
       out_img << pixel;
-      img._buffer[i] = BLACK_PIXEL;
+      if (reset_img) {
+        img._buffer[i] = BLACK_PIXEL;
+      }
     }
+  }
+
+  template <typename ImageOut>
+  void draw_cv_mat(ImageType& img, ImageOut& out_img, bool reset_img = false) {
+#pragma HLS DATAFLOW
+    HlsImageType tmp_img;
+    for (int i = 0; i < img.size; ++i) {
+#pragma HLS PIPELINE II=1
+      HlsPixelType pixel = HlsPixelType(img._buffer[i]);
+      tmp_img << pixel;
+      if (reset_img) {
+        img._buffer[i] = BLACK_PIXEL;
+      }
+    }
+    hls::Resize(tmp_img, out_img);
   }
 
   void draw(HlsImageType& obs_img, HlsImageType& info_img) {

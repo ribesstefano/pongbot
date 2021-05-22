@@ -7,7 +7,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "params.h"
+#include "dqnet_params.h"
 
 class ConvParameters {
 public:
@@ -51,6 +51,8 @@ struct ConvParams {
   static const int H_out = (int((H_i - K + 2 * P) / S + 1));
   static const int W_out = (int((W_i - K + 2 * P) / S + 1));
   static const int weight_size = C_out * C_in * W_in * H_in * K * K;
+  static const int bias_size = C_out;
+  static const int size = weight_size + bias_size;
   static const int in_size = C_in * W_in * H_in;
   static const int out_size = C_out * H_out * W_out;
   using Din = TypeIn;
@@ -62,7 +64,7 @@ template <typename params>
 void Convolution2D(
     const typename params::Din fm_in[params::C_in][params::W_in][params::H_in],
     const typename params::Dw w[params::C_out][params::C_in][params::K][params::K],
-    const typename params::Dw *bias,
+    const typename params::Dw bias[params::C_out],
     typename params::Dout fm_out[params::C_out][params::W_out][params::H_out]) {
   for(int row = 0; row < params::H_out; row++) {
     for(int col = 0; col < params::W_out; col++) {
@@ -78,6 +80,7 @@ void Convolution2D(
             }
           }
         }
+        fm_out[to][row][col] += bias[to];
       }
     }
   }

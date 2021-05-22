@@ -30,7 +30,7 @@ void init_3d_buffer(const typename params::Dout x,
   }
 }
 
-void DQNet(const ActivationType *fm_in, int &action) {
+int DQNet(const ActivationType *fm_in) {
 // #pragma HLS INTERFACE s_axilite port=return bundle=ctrl
 // #pragma HLS INTERFACE m_axi port=fm_in offset=slave depth=1 bundle=dmem_fm_in
 // #pragma HLS INTERFACE s_axilite port=action bundle=ctrl
@@ -43,20 +43,20 @@ void DQNet(const ActivationType *fm_in, int &action) {
   typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128> dense1;
   typedef DenseParams<dense1::L_out, 3> dense2;
 
-  // WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
-  // WeightType conv2_w[conv2::C_out][conv2::C_in][conv2::K][conv2::K];
-  // WeightType conv3_w[conv3::C_out][conv3::C_in][conv3::K][conv3::K];
-  // WeightType dense1_w[dense1::L_out][dense1::L_in];
-  // WeightType dense2_w[dense2::L_out][dense2::L_in];
+  WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
+  WeightType conv2_w[conv2::C_out][conv2::C_in][conv2::K][conv2::K];
+  WeightType conv3_w[conv3::C_out][conv3::C_in][conv3::K][conv3::K];
+  WeightType dense1_w[dense1::L_out][dense1::L_in];
+  WeightType dense2_w[dense2::L_out][dense2::L_in];
   // std::cout << "conv1_w[" << conv1::C_out << "][" << conv1::C_in << "][" << conv1::K << "][" << conv1::K << "]" << std::endl;
   // std::cout << "conv2_w[" << conv2::C_out << "][" << conv2::C_in << "][" << conv2::K << "][" << conv2::K << "]" << std::endl;
   // std::cout << "conv3_w[" << conv3::C_out << "][" << conv3::C_in << "][" << conv3::K << "][" << conv3::K << "]" << std::endl;
   // std::cout << "dense1_w[" << dense1::L_out << "][" << dense1::L_in << "]" << std::endl;
   // std::cout << "dense2_w[" << dense2::L_out << "][" << dense2::L_in << "]" << std::endl;
 
-  WeightType conv1_b[1];
-  WeightType conv2_b[1];
-  WeightType conv3_b[1];
+  WeightType conv1_b[conv1::C_out];
+  WeightType conv2_b[conv2::C_out];
+  WeightType conv3_b[conv3::C_out];
   WeightType dense1_b[dense1::L_out];
   WeightType dense2_b[dense2::L_out];
 
@@ -95,7 +95,7 @@ void DQNet(const ActivationType *fm_in, int &action) {
 #ifndef __VITIS_HLS__
   };
 #endif
-  auto max_out = [&]() {
+  auto max_out_action = [&]() {
 #pragma HLS INLINE
     ActivationType max_val = -(1 << (sizeof(ActivationType) * 8 - 1));
     // std::cout << "MAX: " << max_val << "\n";
@@ -108,7 +108,7 @@ void DQNet(const ActivationType *fm_in, int &action) {
         max_idx = i;
       }
     }
-    action = max_idx;
+    return max_idx;
   };
 #ifndef __VITIS_HLS__
   dma_in();
@@ -118,5 +118,5 @@ void DQNet(const ActivationType *fm_in, int &action) {
   Convolution2D<conv3>(fm2, conv3_w, conv3_b, fm3);
   FlattenDense<conv3, dense1>(fm3, dense1_w, dense1_b, fm4);
   Dense<dense2>(fm4, dense2_w, dense2_b, fm5);
-  max_out();
+  return max_out_action();
 }

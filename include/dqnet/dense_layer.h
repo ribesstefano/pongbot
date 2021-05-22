@@ -1,13 +1,16 @@
 #ifndef DQNET_DENSE_LAYER_H_
 #define DQNET_DENSE_LAYER_H_
 
-#include "params.h"
+#include "dqnet_params.h"
 
 template <int L_i, int L_o, typename TypeIn = ActivationType,
   typename TypeOut = ActivationType, typename TypeW = WeightType>
 struct DenseParams {
   static const int L_in = L_i;
   static const int L_out = L_o;
+  static const int weight_size = L_i * L_o;
+  static const int bias_size = L_o;
+  static const int size = weight_size + bias_size;
   using Din = TypeIn;
   using Dout = TypeOut;
   using Dw = TypeW;

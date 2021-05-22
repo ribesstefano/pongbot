@@ -27,17 +27,26 @@ int main(int argc, char const *argv[]) {
     std::cout << "\ty = " << env._ball._y << std::endl;
     env.step(1, -1);
     env.draw();
+    // Save information image to directory.
     std::string filename(std::string(IMAGE_OUTPUT_PATH) + "/game_" + std::to_string(i) + ".bmp");
-    cv::Mat gameImage = cv::Mat(H, W, CV_8UC1, env._state.information._buffer);
-    cv::imwrite(filename.c_str(), gameImage);
+    cv::Mat game_img = cv::Mat(H, W, CV_8UC1, env._state.information._buffer);
+    cv::imwrite(filename.c_str(), game_img);
+    // Testing resizing image.
+    cv::Mat resized_game_img = cv::Mat(600, 800, CV_8UC1);
+    hls::Mat<600, 800, HLS_8UC1> resized_img;
+    env.draw_cv_mat<hls::Mat<600, 800, HLS_8UC1> >(env._state.information, resized_img);
+    hlsMat2cvMat(resized_img, resized_game_img);
+    std::string resized_filename(std::string(IMAGE_OUTPUT_PATH) + "/game_resized_" + std::to_string(i) + ".bmp");
+    cv::imwrite(resized_filename.c_str(), resized_game_img);
+    
     env.reset_draw();
   }
 
-  // IplImage* gameImage = cvCreateImage(cvSize(W, H), 8, 1);
-  // cvSet(gameImage, cvScalar(0, 0, 0));
-  // memcpy(gameImage->imageData, game._screen_img._buffer, sizeof(unsigned char) * H * W);
-  // cvSaveImage(filename.c_str(), gameImage);
-  // cvReleaseImage(&gameImage);
+  // IplImage* game_img = cvCreateImage(cvSize(W, H), 8, 1);
+  // cvSet(game_img, cvScalar(0, 0, 0));
+  // memcpy(game_img->imageData, game._screen_img._buffer, sizeof(unsigned char) * H * W);
+  // cvSaveImage(filename.c_str(), game_img);
+  // cvReleaseImage(&game_img);
   
   // for (int i = 0; i < num_steps; ++i) {
   //   std::cout << "Image n." << i << ")\n";

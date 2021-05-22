@@ -1,5 +1,5 @@
-#ifndef DQNET_PARAMS_H_
-#define DQNET_PARAMS_H_
+#ifndef DQNET_DQNET_PARAMS_H_
+#define DQNET_DQNET_PARAMS_H_
 
 #define IMAGE_W 64
 #define IMAGE_H 64
@@ -31,4 +31,4 @@ inline T min(const T a, const T b) {
   return ((a < b) ? a : b);
 }
 
-#endif // end DQNET_PARAMS_H_
+#endif // end DQNET_DQNET_PARAMS_H_

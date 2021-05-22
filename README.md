@@ -47,3 +47,8 @@ cd build
 cmake ..
 make all
 ```
+
+## Bugs
+
+List of possible bugs:
+* Having not squared images in games generates distorted images.
