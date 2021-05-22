@@ -4,9 +4,9 @@
 #define IMAGE_W 64
 #define IMAGE_H 64
 #define IMAGE_C 4
-#define NUM_KERNELS 16
-#define KERNEL_SIZE 4
-#define STRIDE 2
+#define CONV_NUM_KERNELS 16
+#define CONV_KERNEL_SIZE 4
+#define CONV_STRIDE 2
 
 #ifdef __SYNTHESIS__
 #include "ap_int.h"

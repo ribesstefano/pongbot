@@ -1,123 +1,54 @@
 #include<iostream>
 #include "pong.h"
 
-template <typename T>
-T min(T a, T b) {
-#pragma HLS INLINE
-  return a < b ? a : b;
-}
-
-template <typename T>
-T max(T a, T b) {
-#pragma HLS INLINE
-  return a > b ? a : b;
-}
-
-void update_player_position(const bool move_up, const bool move_down,
-    const int bar_heigth, const int mov_size, const int screen_heigth,
-    unsigned int& player_y) {
-#pragma HLS INLINE
-#pragma HLS PIPELINE II=1
-  int movement;
-  int player_y_tmp = player_y;
-  if (move_up) {
-    movement = -mov_size;
-  } else if (move_down) {
-    movement = mov_size;
-  } else {
-    movement = 0; // don't make any movement
+void hls_pong(const WeightType* dmem, const bool player1_up,
+    const bool player1_down, AxiStreamRGB &output_stream) {
+#pragma HLS INTERFACE s_axilite port=return bundle=ctrl
+#pragma HLS INTERFACE m_axi port=dmem offset=slave depth=1 bundle=dmem
+#pragma HLS INTERFACE ap_none port=player1_up  
+#pragma HLS INTERFACE ap_none port=player1_down  
+#pragma HLS INTERFACE axis port=output_stream
+  const int W = 64;
+  const int H = 64;
+  const int W_out = 800;
+  const int H_out = 600;
+  typedef hls::Mat<H_out, W_out, HLS_8UC1> OutImageType;
+  typedef Game<H, W, GameRealType, unsigned char> EnvType;
+  OutImageType output_img;
+  const bool kResetImage = true;
+  const int screen_h = H;
+  const int screen_w = W;
+  const int score_w = W / 8;
+  const int score_h = H / 8;
+  const int bar_w = score_w / 4;
+  const int bar_h = score_h / 4 * 3;
+  const int ball_x = H / 2;
+  const int ball_y = W / 2;
+  const unsigned char ball_speed = 3;
+  const unsigned char ball_max_bounce_angle = 80;
+  const unsigned char ball_time = 1;
+  // Initialize Game and DQNet
+  static EnvType env = EnvType(screen_h, screen_w, score_w, score_h, bar_w,
+    bar_h, ball_x, ball_y, ball_speed, ball_max_bounce_angle, ball_time);
+  static DQNet dqnet = DQNet(dmem);
+  // Determine player action and init DQNet action
+  int player_action = 0;
+  static int dqnet_action;
+  static bool init_dqnet_action = true;
+  if (player1_up) {
+    player_action = 1;
+  } else if (player1_down) {
+    player_action = -1;
   }
-  player_y_tmp = min(player_y_tmp + movement, screen_heigth - bar_heigth);
-  player_y_tmp = max(player_y_tmp, 0);
-  player_y = player_y_tmp;
-}
-
-void pong(const bool player1_move_left, const bool player1_move_right,
-  const bool player2_move_left, const bool player2_move_right,
-  unsigned int &player1_score, unsigned int &player2_score,
-  AxiStreamRGB &outStream) {
-// #pragma HLS INTERFACE ap_ctrl_chain port=return
-#pragma HLS INTERFACE s_axilite port=return bundle=CONTORL_BUS
-#pragma HLS INTERFACE s_axilite port=player1_score bundle=CONTORL_BUS
-#pragma HLS INTERFACE s_axilite port=player2_score bundle=CONTORL_BUS
-#pragma HLS INTERFACE axis port=outStream bundle=OUT_STREAM
-#pragma HLS DATAFLOW
-
-  const int kWidth = MAX_WIDTH;
-  const int kHeight = MAX_HEIGHT;
-  const int kBarWidth = kWidth * 0.3;
-  const int kBarHeight = kHeight * 0.05;
-  const int kBallRadius = 20;
-
-  typedef ap_axiu<24, 1, 1, 1> AxiPacket;
-  const unsigned int kBlackPixel = 0;
-  const unsigned int kWhitePixel = 0xFFFFFF;
-
-  // Start in the middle
-  static unsigned int player1_y = kWidth / 2 - kBarWidth / 2;
-  static unsigned int player2_y = kWidth / 2 - kBarWidth / 2;
-
-  static unsigned int _player1_score = 0;
-  static unsigned int _player2_score = 0;
-
-   // For the points inside the ball object to be synthesizeable.
-  static int tail_buffer[2];
-  static int arrow_buffer[2];
-#pragma HLS ARRAY_PARTITION variable=tail_buffer complete dim=0
-#pragma HLS ARRAY_PARTITION variable=arrow_buffer complete dim=0
-  static Ball<kBallRadius> ball(kHeight, kWidth, kBarHeight, kBarWidth, tail_buffer, arrow_buffer);
-
-  // Update player position
-  update_player_position(player1_move_left, player1_move_right, kBarWidth,
-    kBallRadius, kWidth, player1_y);
-  update_player_position(player2_move_left, player2_move_right, kBarWidth,
-    kBallRadius, kWidth, player2_y);
-
-  int losing_player_id = ball.update_ball_position(player1_y - kWidth / 2, player2_y - kWidth / 2);
-
-  for (int y = 0; y < kHeight; ++y) {
-    for (int x = 0; x < kWidth; ++x) {
-#pragma HLS loop_flatten off // As specified in "hls_video_io.h"
-#pragma HLS PIPELINE II=1
-      AxiPacket output_packet;
-      output_packet.data = kBlackPixel;
-      if (losing_player_id) {
-        player1_y = kWidth / 2 - kBarWidth / 2;
-        player2_y = kWidth / 2 - kBarWidth / 2;
-        _player1_score += losing_player_id == 1 ? 1 : 0;
-        _player2_score += losing_player_id == 2 ? 1 : 0;
-        ball.reset_ball_position();
-      } else {
-        // Keep playing
-        if (y < kBarHeight || y > kHeight - 1 - kBarHeight) {
-          const unsigned int player_y = y < kBarHeight ? player1_y : player2_y;
-          if (x > player_y && x < player_y + kBarWidth) {
-            output_packet.data = kWhitePixel;
-          } else {
-            output_packet.data = kBlackPixel;
-          }
-        } else {
-          // Ball drawing
-          output_packet.data = ball.is_ball_pixel(x, y) ? kWhitePixel : kBlackPixel;
-        }
-      }
-      // Configure TLAST and other AXIS protocol signals.
-      if (x == kWidth - 1) {
-        output_packet.last = 1;
-      } else {
-        output_packet.last = 0;
-      }
-      if (y == 0 && x == 0) {
-        output_packet.user = 1;
-      } else {
-        output_packet.user = 0;
-      }
-      outStream << output_packet;
-    }
+  if (init_dqnet_action) {
+    dqnet_action = 0;
+    init_dqnet_action = false;
   }
-  player1_score = _player1_score;
-  player2_score = _player2_score;
-#ifndef __SYNTHESIS__
-  std::cout << "Transfering done.\n";
-#endif
+  env.step(player_action, dqnet_action);
+  env.draw();
+  if (!init_dqnet_action) {
+    dqnet_action = dqnet.call(env.get_observation());
+  }
+  env.draw_cv_mat<OutImageType>(env._state.information, output_img, kResetImage);
+  hls::Mat2AXIvideo<24, H_out, W_out>(output_img, output_stream);
 }

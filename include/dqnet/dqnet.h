@@ -6,7 +6,7 @@
 #include "dense_layer.h"
 #include "memory_manager.h"
 
-int DQNet(const ActivationType *fm_in);
+int DQNetCall(const ActivationType *fm_in);
 
 class DQNet {
 public:
@@ -37,9 +37,10 @@ public:
     offset += dense2::weight_size;
     mem_manager.memcpy(dmem + offset, dense2_b);
   }
-  ~DQNet();
+  ~DQNet() {};
 
-  int call(const ActivationType *fm_in) {
+  template <typename T>
+  int call(const T *fm_in) {
 #ifndef __VITIS_HLS__
     auto dma_in = [&]() {
 #pragma HLS INLINE
@@ -50,7 +51,7 @@ public:
           for (int k = 0; k < conv1::H_in; ++k) {
 #pragma HLS PIPELINE II=1
             const int i_idx = i * conv1::W_in * conv1::H_in + i * conv1::W_in + k;
-            fmi[i][j][k] = fm_in[i_idx];
+            fmi[i][j][k] = fm_in[i_idx] == 0 ? 0 : 255;
           }
         }
       }

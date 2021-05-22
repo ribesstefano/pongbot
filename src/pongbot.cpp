@@ -16,8 +16,8 @@ int main(int argc, char const *argv[]) {
     const bool player_2_move_left = true; // player_2_move_right ? false : int(rand()) % 1;
     std::cout << "Player 1: moves " << (player_1_move_left ? "L" : (player_1_move_right ? "R" : "0")) << "\n";
     std::cout << "Player 2: moves " << (player_2_move_left ? "L" : (player_2_move_right ? "R" : "0")) << "\n";
-    pong(player_1_move_left, player_1_move_right, player_2_move_left,
-      player_2_move_right, player1_score, player2_score, pongStream);
+    // pong(player_1_move_left, player_1_move_right, player_2_move_left,
+    //   player_2_move_right, player1_score, player2_score, pongStream);
     AXIvideo2IplImage(pongStream, pongImage);
     std::string filename(std::string(IMAGE_OUTPUT_PATH) + "/pong_" + std::to_string(i) + ".bmp");
     cvSaveImage(filename.c_str(), pongImage);

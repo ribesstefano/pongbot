@@ -99,9 +99,10 @@ if {${use_zedboard}} {
 # ==============================================================================
 # Top function name, testbench file
 # ==============================================================================
-set TOP "hls_game"
+set TOP "hls_pong"
 set TB "test_game"
-set SRC_DIR "game" ;# Or just leave it empty for including all sub-dirs too.
+set SRC_DIR "" ;# Or just leave it empty for including all sub-dirs too.
+set SRC_LIST [list ""] ;# If empty, it will include all files in SRC_DIR subdirs
 # ==============================================================================
 # Hardware parameters
 # ==============================================================================
@@ -138,7 +139,6 @@ set ARGV ""
 # ==============================================================================
 # NOTE(21/02/2019): the '-fno-builtin' is suggested by Xilinx when using
 # the set_directive_resource option.
-
 if {${cosim}} {
     set CFLAGS "-O3 -g -std=c++0x -fno-builtin -I${PRJ_PATH}/include/${SRC_DIR}/ -DCOSIM_DESIGN ${DEFINES} -I/usr/local/include"
 } else {
@@ -167,11 +167,17 @@ set src_files [findFiles "${PRJ_PATH}/src/${SRC_DIR}/" "*.cpp" "${PRJ_PATH}/src/
 set include_files [findFiles "${PRJ_PATH}/include/${SRC_DIR}/" "*.h" "${PRJ_PATH}/include/tb"]
 
 if {${reset_project}} {
-    foreach f ${src_files} {
-        add_files ${f} -cflags ${CFLAGS}
-    }
-    foreach f ${include_files} {
-        add_files ${f} -cflags ${CFLAGS}
+    if {llength $SRC_LIST -eq 0} {
+        foreach f ${src_files} {
+            add_files ${f} -cflags ${CFLAGS}
+        }
+        foreach f ${include_files} {
+            add_files ${f} -cflags ${CFLAGS}
+        }
+    } else {
+        foreach f ${SRC_LIST} {
+            add_files ${f} -cflags ${CFLAGS}
+        }
     }
 
     # add_files ${PRJ_PATH}/src/axis_lib.cpp -cflags ${CFLAGS}

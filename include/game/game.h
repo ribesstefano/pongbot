@@ -8,7 +8,6 @@
 #include "game_params.h"
 #include "game_utils.h"
 #include "ball.h"
-// #include "point.h"
 
 template <int H, int W, typename T, typename P>
 class Game {
@@ -42,7 +41,6 @@ public:
     this->_screen_w = screen_w;
     this->_score_h = score_h;
     this->_score_w = score_w;
-    this->_screen_img = ImageType();
     // Ball parameters
     this->_ball_speed = ball_speed;
     this->_ball_radius = std::max(screen_w / 64, 1);
@@ -58,9 +56,13 @@ public:
     this->_player2_y = this->_screen_h / 2 - this->_bar_h / 2;
     this->_player1_score = 0;
     this->_player2_score = 0;
-    this->_play_as_best_player = true;
+    this->_play_as_best_player = false;
   }
   ~Game() {}
+
+  void set_play_best_move(const bool move) {
+    this->_play_as_best_player = move;
+  }
 
   void draw_number(const int score, const int score_y, const int score_x, ImageType& img) {
 #ifndef ON
@@ -250,14 +252,20 @@ public:
     this->_play_as_best_player = tmp; // Restore
   }
 
-  void draw(const bool draw_scores_and_midfield = true) {
-    this->draw_bar(this->_player1_y, this->_wall_player1 - this->_bar_w, this->_state.information);
-    this->draw_bar(this->_player2_y, this->_wall_player2, this->_state.information);
-    this->_ball.draw(this->_screen_h, this->_screen_w, this->_state.information);
+  void draw_img(ImageType& img, const bool draw_scores_and_midfield = true) {
+    this->draw_bar(this->_player1_y, this->_wall_player1 - this->_bar_w, img);
+    this->draw_bar(this->_player2_y, this->_wall_player2, img);
+    this->_ball.draw(this->_screen_h, this->_screen_w, img);
     if (draw_scores_and_midfield) {
-      this->draw_midfield(this->_state.information);
-      this->draw_scores(this->_state.information);
+      this->draw_midfield(img);
+      this->draw_scores(img);
     }
+  }
+
+  void draw() {
+#pragma HLS DATAFLOW
+    this->draw_img(this->_state.information, true);
+    this->draw_img(this->_state.observation, false);
   }
 
   void reset_draw() {
@@ -302,6 +310,14 @@ public:
     this->draw_cv_mat(this->_state.information, info_img);
   }
 
+  const P* get_information() {
+    return this->_state.information._buffer;
+  }
+
+  const P* get_observation() {
+    return this->_state.observation._buffer;
+  }
+
   StateType _state;
   // Screen parameters
   int _screen_h;
@@ -313,7 +329,7 @@ public:
   T _ball_radius;
   T _ball_max_bounce_angle;
   T _ball_time;
-  BallV2<T> _ball;
+  Ball<T> _ball;
   // Bars parameters
   int _bar_w;
   int _bar_h;
@@ -324,7 +340,6 @@ public:
   int _player2_y;
   int _player1_score;
   int _player2_score;
-  ImageType _screen_img;
   bool _play_as_best_player;
 };
 

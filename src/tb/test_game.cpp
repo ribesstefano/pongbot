@@ -20,6 +20,7 @@ int main(int argc, char const *argv[]) {
   typedef Game<H, W, GameRealType, unsigned char> EnvType;
   EnvType env = EnvType(screen_h, screen_w, score_w, score_h, bar_w, bar_h,
     ball_x, ball_y, ball_speed, ball_max_bounce_angle, ball_time);
+  env.set_play_best_move(true);
 
   for (int i = 0; i < num_steps; ++i) {
     std::cout << "[INFO] Step n." << i << std::endl;

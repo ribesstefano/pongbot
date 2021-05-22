@@ -30,7 +30,7 @@ void init_3d_buffer(const typename params::Dout x,
   }
 }
 
-int DQNet(const ActivationType *fm_in) {
+int DQNetCall(const ActivationType *fm_in) {
 // #pragma HLS INTERFACE s_axilite port=return bundle=ctrl
 // #pragma HLS INTERFACE m_axi port=fm_in offset=slave depth=1 bundle=dmem_fm_in
 // #pragma HLS INTERFACE s_axilite port=action bundle=ctrl

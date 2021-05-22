@@ -24,7 +24,7 @@ void hls_game(const int action_player1, const int action_player2, unsigned char*
   env.draw();
   ++num_steps;
   StreamOut:
-  for (int i = 0; i < env._screen_img.rows * env._screen_img.cols; ++i) {
+  for (int i = 0; i < env._screen_h * env._screen_w; ++i) {
 #pragma HLS PIPELINE II=1
     img[i] = env._state.information._buffer[i];
   }

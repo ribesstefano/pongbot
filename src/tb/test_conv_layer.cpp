@@ -4,10 +4,10 @@ int main(int argc, char const *argv[]) {
   const int C_in = IMAGE_W;
   const int R_in = IMAGE_H;
   const int channels_in = IMAGE_C;
-  const int kernel_size = KERNEL_SIZE;
+  const int kernel_size = CONV_KERNEL_SIZE;
   const int padding_size = 0;
-  const int stride = STRIDE;
-  const int num_kernels = NUM_KERNELS;
+  const int stride = CONV_STRIDE;
+  const int num_kernels = CONV_NUM_KERNELS;
   const int R = int((R_in - kernel_size + 2 * padding_size) / stride + 1);
   const int C = int((C_in - kernel_size + 2 * padding_size) / stride + 1);
   ActivationType *fm_in = new ActivationType[channels_in * C_in * R_in];

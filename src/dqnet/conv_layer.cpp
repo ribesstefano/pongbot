@@ -239,11 +239,11 @@ void conv(const ActivationType *fm_in, const WeightType *weight,
   const int C_in = IMAGE_W;
   const int R_in = IMAGE_H;
   const int channels_in = IMAGE_C;
-  const int kernel_size = KERNEL_SIZE;
-  const int K = KERNEL_SIZE;
+  const int kernel_size = CONV_KERNEL_SIZE;
+  const int K = CONV_KERNEL_SIZE;
   const int padding_size = 0;
-  const int stride = STRIDE;
-  const int num_kernels = NUM_KERNELS;
+  const int stride = CONV_STRIDE;
+  const int num_kernels = CONV_NUM_KERNELS;
   Convolution2D<ActivationType, ActivationType, WeightType, 8, 8, 4, 1, K>(C_in,
     R_in, channels_in, kernel_size, padding_size, stride, num_kernels, fm_in,
     weight, bias, fm_out);
@@ -259,10 +259,10 @@ void conv_gold(const ActivationType *fm_in, const WeightType *weight,
   const int C_in = IMAGE_W;
   const int R_in = IMAGE_H;
   const int channels_in = IMAGE_C;
-  const int kernel_size = KERNEL_SIZE;
+  const int kernel_size = CONV_KERNEL_SIZE;
   const int padding_size = 0;
-  const int stride = STRIDE;
-  const int num_kernels = NUM_KERNELS;
+  const int stride = CONV_STRIDE;
+  const int num_kernels = CONV_NUM_KERNELS;
   Convolution2D_Reference<ActivationType, ActivationType, WeightType>(C_in,
     R_in, channels_in, kernel_size, padding_size, stride, num_kernels, fm_in,
     weight, bias, fm_out);

@@ -11,8 +11,12 @@ target_include_directories(AXIS_LIB PUBLIC ${VIVADO_INCLUDE_DIRS})
 
 add_library(PONG STATIC ${CMAKE_SOURCE_DIR}/src/pong.cpp)
 target_include_directories(PONG PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(PONG PUBLIC ${CMAKE_SOURCE_DIR}/include/game)
+target_include_directories(PONG PUBLIC ${CMAKE_SOURCE_DIR}/include/dqnet)
 target_include_directories(PONG PUBLIC ${VIVADO_INCLUDE_DIRS})
 target_include_directories(PONG PUBLIC ${OpenCv_INCLUDE_DIRS})
+target_link_libraries(PONG GAME)
+target_link_libraries(PONG DQNET)
 
 add_library(PONGBOT STATIC ${CMAKE_SOURCE_DIR}/src/pongbot.cpp)
 target_include_directories(PONGBOT PUBLIC ${CMAKE_SOURCE_DIR}/include)

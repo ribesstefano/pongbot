@@ -3,8 +3,8 @@
 
 class MemoryManager {
 public:
-  MemoryManager();
-  ~MemoryManager();
+  MemoryManager() {};
+  ~MemoryManager() {};
 
   template <typename T, int X>
   void memcpy(const T *x, T (&y)[X]) {
