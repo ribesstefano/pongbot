@@ -99,7 +99,7 @@ if {${use_zedboard}} {
 # ==============================================================================
 # Top function name, testbench file
 # ==============================================================================
-set TOP "hls_pong"
+set TOP "hls_conv"
 set TB "test_game"
 set SRC_DIR "" ;# Or just leave it empty for including all sub-dirs too.
 set SRC_LIST [list ""] ;# If empty, it will include all files in SRC_DIR subdirs
@@ -167,18 +167,24 @@ set src_files [findFiles "${PRJ_PATH}/src/${SRC_DIR}/" "*.cpp" "${PRJ_PATH}/src/
 set include_files [findFiles "${PRJ_PATH}/include/${SRC_DIR}/" "*.h" "${PRJ_PATH}/include/tb"]
 
 if {${reset_project}} {
-    if {llength $SRC_LIST -eq 0} {
-        foreach f ${src_files} {
-            add_files ${f} -cflags ${CFLAGS}
-        }
-        foreach f ${include_files} {
-            add_files ${f} -cflags ${CFLAGS}
-        }
-    } else {
-        foreach f ${SRC_LIST} {
-            add_files ${f} -cflags ${CFLAGS}
-        }
+    foreach f ${src_files} {
+        add_files ${f} -cflags ${CFLAGS}
     }
+    foreach f ${include_files} {
+        add_files ${f} -cflags ${CFLAGS}
+    }
+    # if {llength $SRC_LIST -eq 0} {
+    #     foreach f ${src_files} {
+    #         add_files ${f} -cflags ${CFLAGS}
+    #     }
+    #     foreach f ${include_files} {
+    #         add_files ${f} -cflags ${CFLAGS}
+    #     }
+    # } else {
+    #     foreach f ${SRC_LIST} {
+    #         add_files ${f} -cflags ${CFLAGS}
+    #     }
+    # }
 
     # add_files ${PRJ_PATH}/src/axis_lib.cpp -cflags ${CFLAGS}
     # add_files ${PRJ_PATH}/include/axis_lib.h -cflags ${CFLAGS}
@@ -239,7 +245,8 @@ if {${use_zcu104_pynq}} {
     config_interface -m_axi_addr64
 }
 
-config_core DSP48 -latency 3
+# config_core DSP48 -latency 3
+
 # ==============================================================================
 # Start C-Simulation
 # ==============================================================================

@@ -1,4 +1,4 @@
-#include "game.h"
+#include "game/game.h"
 #include "ap_int.h"
 
 void hls_game(const int action_player1, const int action_player2, unsigned char* img) {

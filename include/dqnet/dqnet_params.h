@@ -25,10 +25,4 @@ typedef int8_t WeightType;
 // typedef float WeightType;
 #endif
 
-template<typename T>
-inline T min(const T a, const T b) {
-#pragma HLS INLINE
-  return ((a < b) ? a : b);
-}
-
 #endif // end DQNET_DQNET_PARAMS_H_

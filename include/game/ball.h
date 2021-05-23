@@ -5,8 +5,8 @@
 #include "hls_math.h"
 #include "ap_int.h"
 
-#include "game_params.h"
-#include "game_utils.h"
+#include "game/game_params.h"
+#include "game/game_utils.h"
 
 static const float Pi = 3.14159265358979323846;
 static const float kRidiantScaler = Pi / 180.0;

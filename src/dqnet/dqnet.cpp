@@ -1,4 +1,4 @@
-#include "dqnet.h"
+#include "dqnet/dqnet.h"
 
 WeightType conv1_w[32][4][3][3];
 WeightType conv2_w[32][32][3][3];

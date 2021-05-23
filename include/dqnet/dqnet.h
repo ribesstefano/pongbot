@@ -1,20 +1,50 @@
 #ifndef DQNET_DQNET_H_
 #define DQNET_DQNET_H_
 
-#include "dqnet_params.h"
-#include "conv_layer.h"
-#include "dense_layer.h"
-#include "memory_manager.h"
+#include "dqnet/dqnet_params.h"
+#include "dqnet/conv_layer.h"
+#include "dqnet/dense_layer.h"
+#include "dqnet/memory_manager.h"
 
 int DQNetCall(const ActivationType *fm_in);
 
+// TODO: Add templated image size parameters.
 class DQNet {
 public:
   DQNet(const WeightType* dmem) {
-#pragma HLS ARRAY_PARTITION variable=fmi complete dim=1
-#pragma HLS ARRAY_PARTITION variable=fm1 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=fm2 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=fm3 complete dim=1
+// Weights
+#pragma HLS ARRAY_PARTITION variable=conv1_w complete dim=3
+#pragma HLS ARRAY_PARTITION variable=conv2_w complete dim=3
+#pragma HLS ARRAY_PARTITION variable=conv3_w complete dim=3
+#pragma HLS ARRAY_PARTITION variable=conv1_w complete dim=4
+#pragma HLS ARRAY_PARTITION variable=conv2_w complete dim=4
+#pragma HLS ARRAY_PARTITION variable=conv3_w complete dim=4
+// #pragma HLS ARRAY_PARTITION variable=dense1_w complete dim=1
+// #pragma HLS ARRAY_PARTITION variable=dense2_w complete dim=1
+// Biases
+// #pragma HLS ARRAY_PARTITION variable=conv1_b complete dim=1
+// #pragma HLS ARRAY_PARTITION variable=conv2_b complete dim=1
+// #pragma HLS ARRAY_PARTITION variable=conv3_b complete dim=1
+// #pragma HLS ARRAY_PARTITION variable=dense1_b complete dim=1
+// #pragma HLS ARRAY_PARTITION variable=dense2_b complete dim=1
+
+// Feature maps
+#pragma HLS RESOURCE variable=fmi core=RAM_2P_BRAM
+#pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=3
+
+#pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
+#pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=3
+
+#pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
+#pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=3
+
+#pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
+#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=3
+
     MemoryManager mem_manager;
     int offset = 0;
     mem_manager.memcpy(dmem, conv1_w);
@@ -41,6 +71,7 @@ public:
 
   template <typename T>
   int call(const T *fm_in) {
+#pragma HLS INLINE
 #ifndef __VITIS_HLS__
     auto dma_in = [&]() {
 #pragma HLS INLINE
@@ -89,6 +120,8 @@ public:
   typedef ConvParams<32, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out> conv3;
   typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128> dense1;
   typedef DenseParams<dense1::L_out, 3> dense2;
+
+  static const int size = conv1::size + conv2::size + conv3::size + dense1::size + dense2::size;
 
 private:
   // Weights

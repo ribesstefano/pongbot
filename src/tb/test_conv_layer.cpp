@@ -27,7 +27,7 @@ int main(int argc, char const *argv[]) {
     weight[i] = WeightType(rand() + 1);
   }
   for (int i = 0; i < num_kernels; ++i) {
-    bias[i] = WeightType(rand() + 1);
+    bias[i] = 0; // WeightType(rand() + 1);
   }
 
   std::cout << "[INFO] Total num of iterations: "

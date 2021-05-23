@@ -1,4 +1,4 @@
-#include "game_utils.h"
+#include "game/game_utils.h"
 
 unsigned long xorshf96(void) {
 #pragma HLS INLINE

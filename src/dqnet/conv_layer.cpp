@@ -1,4 +1,4 @@
-#include "conv_layer.h"
+#include "dqnet/conv_layer.h"
 
 template <typename Din, typename Dout, typename Dw>
 void Convolution2D(ConvParameters &params, const Din *fm_in,
@@ -38,11 +38,11 @@ void Convolution2D_Reference(const int C_in, const int R_in, const int channels_
   for(int row = 0; row < R; row++) { // R: output rows
     for(int col = 0; col < C; col++) { // C: output columns
       for(int to = 0; to < M; to++) { // M: output channels / Number of filters
+        const int out_idx = to * R * C + row * C + col;
         for(int ti = 0; ti < N; ti++) { // N: input channels
 #pragma HLS PIPELINE II=1
           for(int i = 0; i < K; i++) {
             for(int j = 0; j < K; j++) {
-              const int out_idx = to * R * C + row * C + col;
               const int in_idx = ti * R_in * C_in + (S * row + i) * C_in + S * col + j;
               const int w_idx = to * N * K * K + ti * K * K + i * K + j;
               if (S * row + i > R_in || S * col + j > C_in) {
@@ -52,6 +52,7 @@ void Convolution2D_Reference(const int C_in, const int R_in, const int channels_
             }
           }
         }
+        // fm_out[out_idx] += bias[out_idx]; // TODO: Seg fault. Fix this.
       }
     }
   }
@@ -266,4 +267,27 @@ void conv_gold(const ActivationType *fm_in, const WeightType *weight,
   Convolution2D_Reference<ActivationType, ActivationType, WeightType>(C_in,
     R_in, channels_in, kernel_size, padding_size, stride, num_kernels, fm_in,
     weight, bias, fm_out);
+}
+
+
+typedef ConvParams<32, 3, 2, 4, 64, 64> conv_test;
+
+void hls_conv(
+    const typename conv_test::Din fm_in[conv_test::C_in][conv_test::W_in][conv_test::H_in],
+    const typename conv_test::Dw w[conv_test::C_out][conv_test::C_in][conv_test::K][conv_test::K],
+    const typename conv_test::Dw bias[conv_test::C_out],
+    typename conv_test::Dout fm_out[conv_test::C_out][conv_test::W_out][conv_test::H_out]) {
+  // Interface
+#pragma HLS INTERFACE bram port=fm_in
+#pragma HLS INTERFACE bram port=w
+#pragma HLS INTERFACE bram port=bias
+#pragma HLS INTERFACE bram port=fm_out
+  // Memory Partition
+#pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=conv_test::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=conv_test::K dim=3
+#pragma HLS ARRAY_PARTITION variable=w complete dim=3
+#pragma HLS ARRAY_PARTITION variable=w complete dim=4
+#pragma HLS ARRAY_PARTITION variable=fm_out cyclic factor=conv_test::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm_out cyclic factor=conv_test::K dim=3
+  Convolution2D<conv_test>(fm_in, w, bias, fm_out);
 }

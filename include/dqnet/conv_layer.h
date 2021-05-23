@@ -7,7 +7,8 @@
 #include <iostream>
 #include <cassert>
 
-#include "dqnet_params.h"
+#include "dqnet/dqnet_params.h"
+#include "dqnet/dqnet_utils.h"
 
 class ConvParameters {
 public:
@@ -66,21 +67,39 @@ void Convolution2D(
     const typename params::Dw w[params::C_out][params::C_in][params::K][params::K],
     const typename params::Dw bias[params::C_out],
     typename params::Dout fm_out[params::C_out][params::W_out][params::H_out]) {
+#pragma HLS INLINE
+  typename params::Dout fm_sum;
+  typename params::Dout fm[params::K * params::K];
+#pragma HLS ARRAY_PARTITION variable=fm complete dim=1
+  Convolution2D:
   for(int row = 0; row < params::H_out; row++) {
     for(int col = 0; col < params::W_out; col++) {
       for(int to = 0; to < params::C_out; to++) {
         for(int ti = 0; ti < params::C_in; ti++) {
 #pragma HLS PIPELINE II=1
+          if (ti == 0) {
+            fm_sum = 0;
+            for(int i = 0; i < params::K; i++) {
+              for(int j = 0; j < params::K; j++) {
+                fm[i * params::K + j] = 0;
+              }
+            }
+          }
           for(int i = 0; i < params::K; i++) {
             for(int j = 0; j < params::K; j++) {
               const int r_idx = params::S * row + i;
               const int c_idx = params::S * col + j;
-              fm_out[to][row][col] += w[to][ti][i][j] * fm_in[ti][r_idx][c_idx];
-#pragma HLS RESOURCE variable=fm_out[to][row][col] core=DSP48
+              fm[i * params::K + j] = w[to][ti][i][j] * fm_in[ti][r_idx][c_idx];
+#pragma HLS RESOURCE variable=fm core=DSP48
             }
           }
+          fm_sum += adder::adder_tree<typename params::Dout, params::K * params::K>(fm);
+          if (ti == params::C_in - 1) {
+            fm_out[to][row][col] = fm_sum + bias[to];
+#pragma HLS RESOURCE variable=fm_out[to][row][col] core=DSP48
+          }
         }
-        fm_out[to][row][col] += bias[to];
+        // fm_out[to][row][col] += bias[to];
       }
     }
   }

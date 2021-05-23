@@ -5,9 +5,9 @@
 #include <hls_video.h> // This must be included in the source/syn files only
 #include <cassert>
 
-#include "game_params.h"
-#include "game_utils.h"
-#include "ball.h"
+#include "game/game_params.h"
+#include "game/game_utils.h"
+#include "game/ball.h"
 
 template <int H, int W, typename T, typename P>
 class Game {
@@ -54,9 +54,10 @@ public:
     // Player parameters
     this->_player1_y = this->_screen_h / 2 - this->_bar_h / 2;
     this->_player2_y = this->_screen_h / 2 - this->_bar_h / 2;
-    this->_player1_score = 0;
+    this->_player1_score = 8;
     this->_player2_score = 0;
     this->_play_as_best_player = false;
+// #pragma HLS ARRAY_PARTITION variable=this->_state.information._buffer cyclic factor=DQNet::conv1::K dim=1
   }
   ~Game() {}
 
@@ -159,6 +160,7 @@ public:
   }
 
   int get_follow_ball_action(const int player_id) {
+#pragma HLS INLINE
     const int player_y = player_id == 0 ? this->_player1_y : this->_player2_y;
     if (this->_ball._y != player_y) {
       return int(this->_ball._y - player_y - this->_bar_h / 2);
@@ -185,14 +187,12 @@ public:
       const int player_id = 1;
       player2_action = this->get_follow_ball_action(player_id);
     }
-    // Ceil player 1 position
-    this->_player1_y += player1_action;
-    this->_player1_y = std::min(this->_player1_y, this->_screen_h - this->_bar_h);
+    // Ceil players positions
+    this->_player1_y = std::min(this->_player1_y + player1_action, this->_screen_h - this->_bar_h);
     this->_player1_y = std::max(this->_player1_y, 0);
-    // Ceil player 2 position
-    this->_player2_y += player2_action;
-    this->_player2_y = std::min(this->_player2_y, this->_screen_h - this->_bar_h);
+    this->_player2_y = std::min(this->_player2_y + player2_action, this->_screen_h - this->_bar_h);
     this->_player2_y = std::max(this->_player2_y, 0);
+    // Update game status
     PlayerStatusType status = this->_ball.update_pos(this->_player1_y,
       this->_player2_y, this->_wall_player1, this->_wall_player2, this->_bar_h,
       this->_screen_h);
@@ -290,19 +290,23 @@ public:
     }
   }
 
-  template <typename ImageOut>
-  void draw_cv_mat(ImageType& img, ImageOut& out_img, bool reset_img = false) {
+  template <typename ImageOutType>
+  void draw_cv_mat(ImageType& img, ImageOutType& out_img, bool reset_img = false) {
 #pragma HLS DATAFLOW
-    HlsImageType tmp_img;
+    HlsImageType small_img;
+    ImageOutType threshold_img;
+#pragma HLS STREAM variable=small_img depth=2
+#pragma HLS STREAM variable=threshold_img depth=2
     for (int i = 0; i < img.size; ++i) {
 #pragma HLS PIPELINE II=1
       HlsPixelType pixel = HlsPixelType(img._buffer[i]);
-      tmp_img << pixel;
+      small_img << pixel;
       if (reset_img) {
         img._buffer[i] = BLACK_PIXEL;
       }
     }
-    hls::Resize(tmp_img, out_img);
+    hls::Resize(small_img, threshold_img);
+    hls::Threshold(threshold_img, out_img, 254, 255, HLS_THRESH_TOZERO);
   }
 
   void draw(HlsImageType& obs_img, HlsImageType& info_img) {
