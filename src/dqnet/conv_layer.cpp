@@ -1,4 +1,6 @@
 #include "dqnet/conv_layer.h"
+#include "hls_math.h"
+#include "hls_half.h"
 
 template <typename Din, typename Dout, typename Dw>
 void Convolution2D(ConvParameters &params, const Din *fm_in,
@@ -78,8 +80,8 @@ void Convolution2D(const int C_in, const int R_in, const int channels_in,
                    const Dw *weight, const Dw *bias, Dout *fm_out) {
   const int S = stride;
   const int P = padding_size;
-  const int R = floor((R_in - K + 2 * P) / S + 1);
-  const int C = floor((C_in - K + 2 * P) / S + 1);
+  const int R = int((R_in - K + 2 * P) / S + 1);
+  const int C = int((C_in - K + 2 * P) / S + 1);
   const int M = num_kernels;
   const int N = channels_in;
   assert(Tr <= R_in);
@@ -269,8 +271,7 @@ void conv_gold(const ActivationType *fm_in, const WeightType *weight,
     weight, bias, fm_out);
 }
 
-
-typedef ConvParams<32, 3, 2, 4, 64, 64> conv_test;
+typedef ConvParams<32, 3, 2, 4, 64, 64, 0, ap_fixed<16,3>, ap_fixed<16,3>, ap_fixed<16,3> > conv_test;
 
 void hls_conv(
     const typename conv_test::Din fm_in[conv_test::C_in][conv_test::W_in][conv_test::H_in],

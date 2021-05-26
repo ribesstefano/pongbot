@@ -2,7 +2,7 @@
 #define GAME_BALL_H_
 
 #include <iostream>
-#include "hls_math.h"
+// #include "hls_math.h"
 #include "ap_int.h"
 
 #include "game/game_params.h"

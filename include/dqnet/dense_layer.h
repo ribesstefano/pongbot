@@ -2,6 +2,7 @@
 #define DQNET_DENSE_LAYER_H_
 
 #include "dqnet/dqnet_params.h"
+#include "dqnet/conv_layer.h"
 
 template <int L_i, int L_o, typename TypeIn = ActivationType,
   typename TypeOut = ActivationType, typename TypeW = WeightType>
@@ -30,16 +31,16 @@ void FlattenDense(
     for (int wd = 0; wd < ConvP::W_out; ++wd) {
       for (int ht = 0; ht < ConvP::H_out; ++ht) {
         for (int ch = 0; ch < ConvP::C_out; ++ch) {
+#pragma HLS PIPELINE II=1
           if (wd == 0 && ht == 0 && ch == 0) {
             fm = 0;
           }
-#pragma HLS PIPELINE II=1
           const int w_idx = wd * ConvP::H_out * ConvP::C_out + ht * ConvP::C_out + ch;
           fm += fm_in[ch][wd][ht] * w[i][w_idx];
 #pragma HLS RESOURCE variable=fm core=DSP48
           if (wd == ConvP::W_out - 1 && ht == ConvP::H_out - 1 && ch == ConvP::C_out - 1) {
             fm += bias[i];
-            fm_out[i] = fm;
+            fm_out[i] = ReLU(fm);
           }
         }
       }

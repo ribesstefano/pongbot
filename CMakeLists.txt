@@ -18,6 +18,8 @@ if (WIN32)
 else()
 	add_compile_definitions(IMAGE_OUTPUT_PATH="/mnt/c/Users/ste/phd/pynq_projects/pongbot/data/")
 endif()
+# The following definitions is required for compiling half-precision numbers.
+add_compile_definitions(HLS_NO_XIL_FPO_LIB)
 
 # Move executable in bin/, along side the DLLs (copied)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)

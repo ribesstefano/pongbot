@@ -9,14 +9,19 @@ unsigned long xorrand();
 
 
 /**
- * Sine calculation using interpolated table lookup.
- * Instead of radiants or degrees we use "turns" here. Means this
- * sine does NOT return one phase for 0 to 2*PI, but for 0 to 1.
- * Input: -1 to 1 as int16 Q15  == -32768 to 32767.
+ * @ref
+ * https://www.atwillys.de/content/cc/sine-lookup-for-embedded-in-c/?lang=en
+ * "Embedded sine and cosine functions"
+ *
+ * Sine calculation using interpolated table lookup. Instead of radiants or
+ * degrees we use "turns" here. Means this sine does NOT return one phase for 0
+ * to 2*PI, but for 0 to 1. Input: -1 to 1 as int16 Q15  == -32768 to 32767.
  * Output: -1 to 1 as int16 Q15 == -32768 to 32767.
  *
- * @param short angle Q15
- * @return int16_t Q15
+ * @param[in]  angle  The angle
+ * @param      short  angle Q15
+ *
+ * @return     int16_t Q15
  */
 short sin1(short angle);
  

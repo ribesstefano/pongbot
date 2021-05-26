@@ -5,6 +5,7 @@
 #include "dqnet/dqnet.h"
 
 typedef struct _HlsPongParams {
+  static const int C = 1;
   static const int W = 64;
   static const int H = 64;
   static const int W_out = 800;
@@ -22,6 +23,7 @@ typedef struct _HlsPongParams {
   static const unsigned char ball_time = 1;
   typedef hls::Mat<H_out, W_out, HLS_8UC1> OutImageType;
   typedef Game<H, W, GameRealType, unsigned char> EnvType;
+  typedef DQNet<C, H, W> DQNetType;
 } HlsPongParams;
 
 void hls_pong(const WeightType* dmem, const bool player1_up,

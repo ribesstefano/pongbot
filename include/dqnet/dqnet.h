@@ -9,6 +9,7 @@
 int DQNetCall(const ActivationType *fm_in);
 
 // TODO: Add templated image size parameters.
+template <int C = IMAGE_C, int W = IMAGE_W, int H = IMAGE_H>
 class DQNet {
 public:
   DQNet(const WeightType* dmem) {
@@ -42,8 +43,8 @@ public:
 #pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=3
 
 #pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
-#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=2
-#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=3
+// #pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::C_out/8 dim=3
 
     MemoryManager mem_manager;
     int offset = 0;
@@ -115,9 +116,9 @@ public:
     return max_out_action();
   }
   
-  typedef ConvParams<32, 3, 2, IMAGE_C, IMAGE_W, IMAGE_H> conv1;
-  typedef ConvParams<32, 3, 2, conv1::C_out, conv1::W_out, conv1::H_out> conv2;
-  typedef ConvParams<32, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out> conv3;
+  typedef ConvParams<32, 8, 4, C, W, H> conv1;
+  typedef ConvParams<64, 4, 3, conv1::C_out, conv1::W_out, conv1::H_out> conv2;
+  typedef ConvParams<64, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out> conv3;
   typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128> dense1;
   typedef DenseParams<dense1::L_out, 3> dense2;
 

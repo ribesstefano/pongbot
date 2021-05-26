@@ -120,3 +120,15 @@ int DQNetCall(const ActivationType *fm_in) {
   Dense<dense2>(fm4, dense2_w, dense2_b, fm5);
   return max_out_action();
 }
+
+
+void hls_dqnet(const WeightType* dmem, const ActivationType *fm_in, int& dqnet_action) {
+  typedef DQNet<4, 64, 64> DQNetType;
+#pragma HLS INTERFACE s_axilite port=return bundle=ctrl
+#pragma HLS INTERFACE s_axilite port=dqnet_action bundle=ctrl
+#pragma HLS INTERFACE m_axi port=dmem offset=slave depth=DQNetType::size bundle=dmem
+#pragma HLS INTERFACE bram port=fm_in
+#pragma HLS DATAFLOW
+  static DQNetType dqnet = DQNetType(dmem);
+  dqnet_action = dqnet.call<ActivationType>(fm_in);
+}

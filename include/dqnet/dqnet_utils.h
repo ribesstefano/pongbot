@@ -1,6 +1,18 @@
 #ifndef DQNET_DQNET_UTILS_H_
 #define DQNET_DQNET_UTILS_H_
 
+template <typename T>
+void ReLU(const T &x, T &y) {
+#pragma HLS INLINE
+  y = x > 0 ? x : 0;
+}
+
+template <typename T>
+T ReLU(const T &x) {
+#pragma HLS INLINE
+  return (x > 0) ? x : T(0);
+}
+
 namespace adder {
 
 template <int x>

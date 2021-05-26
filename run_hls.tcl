@@ -69,6 +69,13 @@ exec mkdir -p -- ./hls/reports
 cd hls
 
 # ==============================================================================
+# Top function name, testbench file
+# ==============================================================================
+set TOP "hls_pong"
+set TB "test_game"
+set SRC_DIR "" ;# Or just leave it empty for including all sub-dirs too.
+set SRC_LIST [list ""] ;# If empty, it will include all files in SRC_DIR subdirs
+# ==============================================================================
 # Setups
 # ==============================================================================
 set reset_project 1
@@ -97,13 +104,6 @@ if {${use_zedboard}} {
     set board_name "ZCU102"
 }
 # ==============================================================================
-# Top function name, testbench file
-# ==============================================================================
-set TOP "hls_conv"
-set TB "test_game"
-set SRC_DIR "" ;# Or just leave it empty for including all sub-dirs too.
-set SRC_LIST [list ""] ;# If empty, it will include all files in SRC_DIR subdirs
-# ==============================================================================
 # Hardware parameters
 # ==============================================================================
 
@@ -114,7 +114,8 @@ set PROJECT_NAME "${board_name}_${TOP}"
 # ==============================================================================
 # Defines
 # ==============================================================================
-set DEFINES ""
+# The HLS_NO_XIL_FPO_LIB flag is used to compile hlaf precision numbers.
+set DEFINES "-DHLS_NO_XIL_FPO_LIB"
 append DEFINES ""
 
 if {${use_zcu104_pynq}} {
@@ -245,7 +246,8 @@ if {${use_zcu104_pynq}} {
     config_interface -m_axi_addr64
 }
 
-# config_core DSP48 -latency 3
+config_core DSP48 -latency 3
+config_dataflow -default_channel pingpong
 
 # ==============================================================================
 # Start C-Simulation

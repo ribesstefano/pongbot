@@ -4,8 +4,8 @@
 
 int main(int argc, char const *argv[]) {
   int num_test_steps = 16;
-  WeightType* dmem = new WeightType[DQNet::size];
-  for (int i = 0; i < DQNet::size; ++i) {
+  WeightType* dmem = new WeightType[HlsPongParams::DQNetType::size];
+  for (int i = 0; i < HlsPongParams::DQNetType::size; ++i) {
     dmem[i] = WeightType(rand());
   }
   AxiStreamRGB output_stream;

@@ -2,7 +2,8 @@
 #include "pong.h"
 
 void pong_kernel(const int player_action, int& dqnet_action,
-    HlsPongParams::EnvType& env, DQNet& dqnet, AxiStreamRGB &output_stream) {
+    HlsPongParams::EnvType& env, HlsPongParams::DQNetType& dqnet,
+    AxiStreamRGB &output_stream) {
 #pragma HLS DATAFLOW
   const bool kResetImage = true;
   typename HlsPongParams::OutImageType output_img;
@@ -18,7 +19,7 @@ void hls_pong(const WeightType* dmem, const bool player1_up,
     const bool player1_down, AxiStreamRGB &output_stream) {
 // #pragma HLS DATAFLOW
 #pragma HLS INTERFACE s_axilite port=return bundle=ctrl
-#pragma HLS INTERFACE m_axi port=dmem offset=slave depth=DQNet::size bundle=dmem
+#pragma HLS INTERFACE m_axi port=dmem offset=slave depth=HlsPongParams::DQNetType::size bundle=dmem
 #pragma HLS INTERFACE ap_none port=player1_up  
 #pragma HLS INTERFACE ap_none port=player1_down  
 #pragma HLS INTERFACE axis port=output_stream
@@ -31,7 +32,7 @@ void hls_pong(const WeightType* dmem, const bool player1_up,
     HlsPongParams::score_h, HlsPongParams::bar_w, HlsPongParams::bar_h,
     HlsPongParams::ball_x, HlsPongParams::ball_y, HlsPongParams::ball_speed,
     HlsPongParams::ball_max_bounce_angle, HlsPongParams::ball_time);
-  static DQNet dqnet = DQNet(dmem);
+  static HlsPongParams::DQNetType dqnet = HlsPongParams::DQNetType(dmem);
   // Determine player action and init DQNet action
   int player_action = 0;
   if (player1_up) {

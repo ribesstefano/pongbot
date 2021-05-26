@@ -90,12 +90,12 @@ void Convolution2D(
               const int r_idx = params::S * row + i;
               const int c_idx = params::S * col + j;
               fm[i * params::K + j] = w[to][ti][i][j] * fm_in[ti][r_idx][c_idx];
-#pragma HLS RESOURCE variable=fm core=DSP48
+#pragma HLS RESOURCE variable=fm[i*params::K+j] core=DSP48
             }
           }
           fm_sum += adder::adder_tree<typename params::Dout, params::K * params::K>(fm);
           if (ti == params::C_in - 1) {
-            fm_out[to][row][col] = fm_sum + bias[to];
+            fm_out[to][row][col] = ReLU(fm_sum + bias[to]);
 #pragma HLS RESOURCE variable=fm_out[to][row][col] core=DSP48
           }
         }

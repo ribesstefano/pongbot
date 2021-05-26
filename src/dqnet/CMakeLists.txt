@@ -4,6 +4,7 @@ add_library(CONV_LAYER STATIC ${CMAKE_SOURCE_DIR}/src/dqnet/conv_layer.cpp)
 target_include_directories(CONV_LAYER PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(CONV_LAYER PUBLIC ${CMAKE_SOURCE_DIR}/include/dqnet)
 target_include_directories(CONV_LAYER PUBLIC ${VIVADO_INCLUDE_DIRS})
+target_compile_options(CONV_LAYER PRIVATE -fno-builtin)
 
 add_library(DENSE_LAYER STATIC ${CMAKE_SOURCE_DIR}/src/dqnet/dense_layer.cpp)
 target_include_directories(DENSE_LAYER PUBLIC ${CMAKE_SOURCE_DIR}/include)
