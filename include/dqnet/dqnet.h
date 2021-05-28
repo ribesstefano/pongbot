@@ -20,31 +20,29 @@ public:
 #pragma HLS ARRAY_PARTITION variable=conv1_w complete dim=4
 #pragma HLS ARRAY_PARTITION variable=conv2_w complete dim=4
 #pragma HLS ARRAY_PARTITION variable=conv3_w complete dim=4
-// #pragma HLS ARRAY_PARTITION variable=dense1_w complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=dense2_w complete dim=1
+#pragma HLS ARRAY_PARTITION variable=dense1_w cyclic factor=dense1::unroll_factor dim=2
+#pragma HLS ARRAY_PARTITION variable=dense2_w cyclic factor=dense2::unroll_factor dim=2
 // Biases
 // #pragma HLS ARRAY_PARTITION variable=conv1_b complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=conv2_b complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=conv3_b complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dense1_b complete dim=1
 // #pragma HLS ARRAY_PARTITION variable=dense2_b complete dim=1
-
 // Feature maps
 #pragma HLS RESOURCE variable=fmi core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=fm4 core=RAM_2P_BRAM
+#pragma HLS RESOURCE variable=fm5 core=RAM_2P_BRAM
 #pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=2
 #pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=3
-
-#pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
 #pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=2
 #pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=3
-
-#pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
 #pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=2
 #pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=3
-
-#pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
-// #pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::K dim=2
-#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=conv3::C_out/8 dim=3
+#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=dense1::unroll_factor dim=1
+#pragma HLS ARRAY_PARTITION variable=fm4 cyclic factor=dense2::unroll_factor dim=1
 
     MemoryManager mem_manager;
     int offset = 0;

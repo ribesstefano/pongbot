@@ -68,6 +68,7 @@ void Convolution2D(
     const typename params::Dw bias[params::C_out],
     typename params::Dout fm_out[params::C_out][params::W_out][params::H_out]) {
 #pragma HLS INLINE
+  using adder_t = typename params::Dout;
   typename params::Dout fm_sum;
   typename params::Dout fm[params::K * params::K];
 #pragma HLS ARRAY_PARTITION variable=fm complete dim=1
@@ -93,13 +94,12 @@ void Convolution2D(
 #pragma HLS RESOURCE variable=fm[i*params::K+j] core=DSP48
             }
           }
-          fm_sum += adder::adder_tree<typename params::Dout, params::K * params::K>(fm);
+          fm_sum += adder::adder_tree<adder_t, params::K * params::K>(fm);
           if (ti == params::C_in - 1) {
             fm_out[to][row][col] = ReLU(fm_sum + bias[to]);
 #pragma HLS RESOURCE variable=fm_out[to][row][col] core=DSP48
           }
         }
-        // fm_out[to][row][col] += bias[to];
       }
     }
   }
