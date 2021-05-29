@@ -1,10 +1,10 @@
 #include "dqnet/dqnet.h"
 
-WeightType conv1_w[32][4][3][3];
-WeightType conv2_w[32][32][3][3];
-WeightType conv3_w[32][32][3][3];
-WeightType dense1_w[128][1568];
-WeightType dense2_w[3][128];
+// WeightType conv1_w[32][4][3][3];
+// WeightType conv2_w[32][32][3][3];
+// WeightType conv3_w[32][32][3][3];
+// WeightType dense1_w[128][1568];
+// WeightType dense2_w[3][128];
 
 template <typename params>
 void init_1d_buffer(const typename params::Dout x,
@@ -37,11 +37,11 @@ int DQNetCall(const ActivationType *fm_in) {
 #pragma HLS INTERFACE ap_fifo port=fm_in
 #pragma HLS DATAFLOW
 
-  typedef ConvParams<32, 3, 2, IMAGE_C, IMAGE_W, IMAGE_H> conv1;
-  typedef ConvParams<32, 3, 2, conv1::C_out, conv1::W_out, conv1::H_out> conv2;
-  typedef ConvParams<32, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out> conv3;
-  typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128> dense1;
-  typedef DenseParams<dense1::L_out, 3> dense2;
+  typedef ConvParams<32, 3, 2, IMAGE_C, IMAGE_W, IMAGE_H, 0, ActivationType, ActivationType, WeightType> conv1;
+  typedef ConvParams<32, 3, 2, conv1::C_out, conv1::W_out, conv1::H_out, 0, ActivationType, ActivationType, WeightType> conv2;
+  typedef ConvParams<32, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out, 0, ActivationType, ActivationType, WeightType> conv3;
+  typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128, ActivationType, ActivationType, WeightType> dense1;
+  typedef DenseParams<dense1::L_out, 3, ActivationType, ActivationType, WeightType> dense2;
 
   WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
   WeightType conv2_w[conv2::C_out][conv2::C_in][conv2::K][conv2::K];

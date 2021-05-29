@@ -12,38 +12,40 @@ int DQNetCall(const ActivationType *fm_in);
 template <int C = IMAGE_C, int W = IMAGE_W, int H = IMAGE_H>
 class DQNet {
 public:
+
+  typedef ConvParams<32, 8, 4, C, W, H, 0, ActivationType, ActivationType, WeightType> conv1;
+  typedef ConvParams<64, 4, 3, conv1::C_out, conv1::W_out, conv1::H_out, 0, ActivationType, ActivationType, WeightType> conv2;
+  typedef ConvParams<64, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out, 0, ActivationType, ActivationType, WeightType> conv3;
+  typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128, ActivationType, ActivationType, WeightType> dense1;
+  typedef DenseParams<dense1::L_out, 3, ActivationType, ActivationType, WeightType> dense2;
+private:
+  // Weights
+  WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
+  WeightType conv2_w[conv2::C_out][conv2::C_in][conv2::K][conv2::K];
+  WeightType conv3_w[conv3::C_out][conv3::C_in][conv3::K][conv3::K];
+  WeightType dense1_w[dense1::L_out][dense1::L_in];
+  WeightType dense2_w[dense2::L_out][dense2::L_in];
+  // Biases
+  WeightType conv1_b[conv1::C_out];
+  WeightType conv2_b[conv2::C_out];
+  WeightType conv3_b[conv3::C_out];
+  WeightType dense1_b[dense1::L_out];
+  WeightType dense2_b[dense2::L_out];
+  // Feature maps
+  ActivationType fmi[conv1::C_in][conv1::W_in][conv1::H_in];
+  ActivationType fm1[conv1::C_out][conv1::W_out][conv1::H_out];
+  ActivationType fm2[conv2::C_out][conv2::W_out][conv2::H_out];
+  ActivationType fm3[conv3::C_out][conv3::W_out][conv3::H_out];
+  ActivationType fm4[dense1::L_out];
+  ActivationType fm5[dense2::L_out];
+public:
   DQNet(const WeightType* dmem) {
-// Weights
-#pragma HLS ARRAY_PARTITION variable=conv1_w complete dim=3
-#pragma HLS ARRAY_PARTITION variable=conv2_w complete dim=3
-#pragma HLS ARRAY_PARTITION variable=conv3_w complete dim=3
-#pragma HLS ARRAY_PARTITION variable=conv1_w complete dim=4
-#pragma HLS ARRAY_PARTITION variable=conv2_w complete dim=4
-#pragma HLS ARRAY_PARTITION variable=conv3_w complete dim=4
-#pragma HLS ARRAY_PARTITION variable=dense1_w cyclic factor=dense1::unroll_factor dim=2
-#pragma HLS ARRAY_PARTITION variable=dense2_w cyclic factor=dense2::unroll_factor dim=2
-// Biases
-// #pragma HLS ARRAY_PARTITION variable=conv1_b complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=conv2_b complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=conv3_b complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=dense1_b complete dim=1
-// #pragma HLS ARRAY_PARTITION variable=dense2_b complete dim=1
-// Feature maps
 #pragma HLS RESOURCE variable=fmi core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=fm4 core=RAM_2P_BRAM
 #pragma HLS RESOURCE variable=fm5 core=RAM_2P_BRAM
-#pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=2
-#pragma HLS ARRAY_PARTITION variable=fmi cyclic factor=conv1::K dim=3
-#pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=2
-#pragma HLS ARRAY_PARTITION variable=fm1 cyclic factor=conv2::K dim=3
-#pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=2
-#pragma HLS ARRAY_PARTITION variable=fm2 cyclic factor=conv3::K dim=3
-#pragma HLS ARRAY_PARTITION variable=fm3 cyclic factor=dense1::unroll_factor dim=1
-#pragma HLS ARRAY_PARTITION variable=fm4 cyclic factor=dense2::unroll_factor dim=1
-
     MemoryManager mem_manager;
     int offset = 0;
     mem_manager.memcpy(dmem, conv1_w);
@@ -113,35 +115,8 @@ public:
     Dense<dense2>(fm4, dense2_w, dense2_b, fm5);
     return max_out_action();
   }
-  
-  typedef ConvParams<32, 8, 4, C, W, H> conv1;
-  typedef ConvParams<64, 4, 3, conv1::C_out, conv1::W_out, conv1::H_out> conv2;
-  typedef ConvParams<64, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out> conv3;
-  typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128> dense1;
-  typedef DenseParams<dense1::L_out, 3> dense2;
 
   static const int size = conv1::size + conv2::size + conv3::size + dense1::size + dense2::size;
-
-private:
-  // Weights
-  WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
-  WeightType conv2_w[conv2::C_out][conv2::C_in][conv2::K][conv2::K];
-  WeightType conv3_w[conv3::C_out][conv3::C_in][conv3::K][conv3::K];
-  WeightType dense1_w[dense1::L_out][dense1::L_in];
-  WeightType dense2_w[dense2::L_out][dense2::L_in];
-  // Biases
-  WeightType conv1_b[conv1::C_out];
-  WeightType conv2_b[conv2::C_out];
-  WeightType conv3_b[conv3::C_out];
-  WeightType dense1_b[dense1::L_out];
-  WeightType dense2_b[dense2::L_out];
-  // Feature maps
-  ActivationType fmi[conv1::C_in][conv1::W_in][conv1::H_in];
-  ActivationType fm1[conv1::C_out][conv1::W_out][conv1::H_out];
-  ActivationType fm2[conv2::C_out][conv2::W_out][conv2::H_out];
-  ActivationType fm3[conv3::C_out][conv3::W_out][conv3::H_out];
-  ActivationType fm4[dense1::L_out];
-  ActivationType fm5[dense2::L_out];
 };
 
 #if 0

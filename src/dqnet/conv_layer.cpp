@@ -1,28 +1,10 @@
 #include "dqnet/conv_layer.h"
 #include "hls_math.h"
 #include "hls_half.h"
+#include "ap_int.h"
 
-template <typename Din, typename Dout, typename Dw>
-void Convolution2D(ConvParameters &params, const Din *fm_in,
-                   const Dw *weight, const Dw *bias, Dout *fm_out) {
-  for(int row = 0; row < params.H_out; row++) {
-    for(int col = 0; col < params.W_out; col++) {
-      for(int to = 0; to < params.C_out; to++) {
-        for(int ti = 0; ti < params.C_in; ti++) {
-#pragma HLS PIPELINE II=1
-          for(int i = 0; i < params.K; i++) {
-            for(int j = 0; j < params.K; j++) {
-              const int out_idx = to * params.H_out * params.W_out + row * params.W_out + col;
-              const int in_idx = ti * params.H_in * params.W_in + (params.S * row + i) * params.W_in + params.S * col + j;
-              const int w_idx = to * params.C_in * params.K * params.K + ti * params.K * params.K + i * params.K + j;
-              fm_out[out_idx] += weight[w_idx] * fm_in[in_idx];
-            }
-          }
-        }
-      }
-    }
-  }
-}
+typedef ap_fixed<16, 3> ActivationType;
+typedef ap_fixed<8, 3> WeightType;
 
 template <typename Din, typename Dout, typename Dw>
 void Convolution2D_Reference(const int C_in, const int R_in, const int channels_in,
@@ -230,45 +212,6 @@ void Convolution2D(const int C_in, const int R_in, const int channels_in,
   // to -= Tm;
   // flip(wr_ptr);
   // store_buffers();
-}
-
-void conv(const ActivationType *fm_in, const WeightType *weight,
-    const WeightType *bias, ActivationType *fm_out) {
-#pragma HLS INTERFACE s_axilite port=return bundle=ctrl
-#pragma HLS INTERFACE m_axi port=fm_in offset=slave depth=1 bundle=dmem_fm_in
-#pragma HLS INTERFACE m_axi port=weight offset=slave depth=1 bundle=dmem_weight
-#pragma HLS INTERFACE m_axi port=bias offset=slave depth=1 bundle=dmem_bias
-#pragma HLS INTERFACE m_axi port=fm_out offset=slave depth=1 bundle=dmem_fm_out
-  const int C_in = IMAGE_W;
-  const int R_in = IMAGE_H;
-  const int channels_in = IMAGE_C;
-  const int kernel_size = CONV_KERNEL_SIZE;
-  const int K = CONV_KERNEL_SIZE;
-  const int padding_size = 0;
-  const int stride = CONV_STRIDE;
-  const int num_kernels = CONV_NUM_KERNELS;
-  Convolution2D<ActivationType, ActivationType, WeightType, 8, 8, 4, 1, K>(C_in,
-    R_in, channels_in, kernel_size, padding_size, stride, num_kernels, fm_in,
-    weight, bias, fm_out);
-}
-
-void conv_gold(const ActivationType *fm_in, const WeightType *weight,
-    const WeightType *bias, ActivationType *fm_out) {
-#pragma HLS INTERFACE s_axilite port=return bundle=ctrl
-#pragma HLS INTERFACE m_axi port=fm_in offset=slave depth=1 bundle=dmem_fm_in
-#pragma HLS INTERFACE m_axi port=weight offset=slave depth=1 bundle=dmem_weight
-#pragma HLS INTERFACE m_axi port=bias offset=slave depth=1 bundle=dmem_bias
-#pragma HLS INTERFACE m_axi port=fm_out offset=slave depth=1 bundle=dmem_fm_out
-  const int C_in = IMAGE_W;
-  const int R_in = IMAGE_H;
-  const int channels_in = IMAGE_C;
-  const int kernel_size = CONV_KERNEL_SIZE;
-  const int padding_size = 0;
-  const int stride = CONV_STRIDE;
-  const int num_kernels = CONV_NUM_KERNELS;
-  Convolution2D_Reference<ActivationType, ActivationType, WeightType>(C_in,
-    R_in, channels_in, kernel_size, padding_size, stride, num_kernels, fm_in,
-    weight, bias, fm_out);
 }
 
 typedef ConvParams<32, 3, 2, 4, 64, 64, 0, ap_fixed<16,3>, ap_fixed<16,3>, ap_fixed<16,3> > conv_test;
