@@ -1,5 +1,26 @@
 #include "dqnet/dqnet.h"
 
+ap_shift_reg<int, DQNetSyn::dqnetp::conv1::C_in> DQNetSyn::_frame_ptr;
+// Weights
+dqnet_param::Dw DQNetSyn::conv1_w[dqnet_param::conv1::C_out][dqnet_param::conv1::C_in][dqnet_param::conv1::K][dqnet_param::conv1::K];
+dqnet_param::Dw DQNetSyn::conv2_w[dqnet_param::conv2::C_out][dqnet_param::conv2::C_in][dqnet_param::conv2::K][dqnet_param::conv2::K];
+dqnet_param::Dw DQNetSyn::conv3_w[dqnet_param::conv3::C_out][dqnet_param::conv3::C_in][dqnet_param::conv3::K][dqnet_param::conv3::K];
+dqnet_param::Dw DQNetSyn::dense1_w[dqnet_param::dense1::L_out][dqnet_param::dense1::L_in];
+dqnet_param::Dw DQNetSyn::dense2_w[dqnet_param::dense2::L_out][dqnet_param::dense2::L_in];
+// Biases
+dqnet_param::Dw DQNetSyn::conv1_b[dqnet_param::conv1::C_out];
+dqnet_param::Dw DQNetSyn::conv2_b[dqnet_param::conv2::C_out];
+dqnet_param::Dw DQNetSyn::conv3_b[dqnet_param::conv3::C_out];
+dqnet_param::Dw DQNetSyn::dense1_b[dqnet_param::dense1::L_out];
+dqnet_param::Dw DQNetSyn::dense2_b[dqnet_param::dense2::L_out];
+// Feature maps
+dqnet_param::Din DQNetSyn::fmi[dqnet_param::conv1::C_in][dqnet_param::conv1::W_in][dqnet_param::conv1::H_in];
+dqnet_param::Din DQNetSyn::fm1[dqnet_param::conv1::C_out][dqnet_param::conv1::W_out][dqnet_param::conv1::H_out];
+dqnet_param::Din DQNetSyn::fm2[dqnet_param::conv2::C_out][dqnet_param::conv2::W_out][dqnet_param::conv2::H_out];
+dqnet_param::Din DQNetSyn::fm3[dqnet_param::conv3::C_out][dqnet_param::conv3::W_out][dqnet_param::conv3::H_out];
+dqnet_param::Din DQNetSyn::fm4[dqnet_param::dense1::L_out];
+dqnet_param::Din DQNetSyn::fm5[dqnet_param::dense2::L_out];
+
 // WeightType conv1_w[32][4][3][3];
 // WeightType conv2_w[32][32][3][3];
 // WeightType conv3_w[32][32][3][3];
@@ -31,9 +52,6 @@ void init_3d_buffer(const typename params::Dout x,
 }
 
 int DQNetCall(const ActivationType *fm_in) {
-// #pragma HLS INTERFACE s_axilite port=return bundle=ctrl
-// #pragma HLS INTERFACE m_axi port=fm_in offset=slave depth=1 bundle=dmem_fm_in
-// #pragma HLS INTERFACE s_axilite port=action bundle=ctrl
 #pragma HLS INTERFACE ap_fifo port=fm_in
 #pragma HLS DATAFLOW
 

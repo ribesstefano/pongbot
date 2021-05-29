@@ -22,6 +22,8 @@ struct DenseParams {
   static const int size = weight_size + bias_size;
   static const int unroll_factor = U;
   static const DenseArchitecture architecture = Arch;
+  static const int num_dsps_adder = adder::num_dsps<U>::value;
+  static const int num_dsps_required = architecture == kUnrolled ? (num_dsps_adder) : 1;
   using Din = TypeIn;
   using Dout = TypeOut;
   using Dw = TypeW;

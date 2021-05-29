@@ -27,6 +27,8 @@ struct ConvParams {
   static const int in_size = C_in * W_in * H_in;
   static const int out_size = C_out * H_out * W_out;
   static const int unroll_factor = U;
+  static const int num_dsps_adder = adder::num_dsps<K * K>::value;
+  static const int num_dsps_required = U * (num_dsps_adder + 1);
   using Din = TypeIn;
   using Dout = TypeOut;
   using Dw = TypeW;
@@ -65,6 +67,7 @@ void Convolution2D(
     const typename params::Dw w[params::C_out][params::C_in][params::K][params::K],
     const typename params::Dw bias[params::C_out],
     typename params::Dout fm_out[params::C_out][params::W_out][params::H_out]) {
+  assert(params::C_out % params::unroll_factor == 0);
 #pragma HLS INLINE
 #pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=params::K dim=2
 #pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=params::K dim=3
@@ -92,6 +95,57 @@ void Convolution2D(
               const int r_idx = params::S * row + i;
               const int c_idx = params::S * col + j;
               fm[i * params::K + j] = w[to][ti][i][j] * fm_in[ti][r_idx][c_idx];
+#pragma HLS RESOURCE variable=fm[i*params::K+j] core=DSP48
+            }
+          }
+          fm_sum += adder::adder_tree<adder_t, params::K * params::K>(fm);
+          if (ti == params::C_in - 1) {
+            fm_out[to][row][col] = ReLU(fm_sum + bias[to]);
+#pragma HLS RESOURCE variable=fm_out[to][row][col] core=DSP48
+          }
+        }
+      }
+    }
+  }
+}
+
+
+template <typename params>
+void Convolution2D(
+    const typename params::Din fm_in[params::C_in][params::W_in][params::H_in],
+    const typename params::Dw w[params::C_out][params::C_in][params::K][params::K],
+    const typename params::Dw bias[params::C_out],
+    typename params::Dout fm_out[params::C_out][params::W_out][params::H_out],
+    int frame_ptr[params::C_in]) {
+#pragma HLS INLINE
+#pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=params::K dim=2
+#pragma HLS ARRAY_PARTITION variable=fm_in cyclic factor=params::K dim=3
+#pragma HLS ARRAY_PARTITION variable=w cyclic factor=params::unroll_factor dim=1
+#pragma HLS ARRAY_PARTITION variable=w complete dim=3
+#pragma HLS ARRAY_PARTITION variable=w complete dim=4
+#pragma HLS ARRAY_PARTITION variable=bias cyclic factor=params::unroll_factor dim=1
+#pragma HLS ARRAY_PARTITION variable=fm_out cyclic factor=params::unroll_factor dim=1
+#pragma HLS ARRAY_PARTITION variable=frame_ptr complete
+  using adder_t = typename params::Dout;
+  Convolution2D:
+  for(int row = 0; row < params::H_out; row++) {
+    for(int col = 0; col < params::W_out; col++) {
+      for(int to = 0; to < params::C_out; to++) {
+#pragma HLS UNROLL factor=params::unroll_factor
+        typename params::Dout fm_sum;
+        typename params::Dout fm[params::K * params::K];
+#pragma HLS ARRAY_PARTITION variable=fm complete dim=1
+        for(int ti = 0; ti < params::C_in; ti++) {
+#pragma HLS PIPELINE II=1
+          if (ti == 0) {
+            fm_sum = 0;
+          }
+          for(int i = 0; i < params::K; i++) {
+            for(int j = 0; j < params::K; j++) {
+              const int r_idx = params::S * row + i;
+              const int c_idx = params::S * col + j;
+              const int ti_idx = frame_ptr[ti];
+              fm[i * params::K + j] = w[to][ti_idx][i][j] * fm_in[ti_idx][r_idx][c_idx];
 #pragma HLS RESOURCE variable=fm[i*params::K+j] core=DSP48
             }
           }

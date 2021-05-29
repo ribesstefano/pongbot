@@ -25,6 +25,16 @@ struct log2<1> {
   enum {value = 0};
 };
 
+template <int x>
+struct num_dsps {
+  enum {value = x / 2 + num_dsps<x / 2>::value};
+};
+
+template <>
+struct num_dsps<2> {
+  enum {value = 1};
+};
+
 template <typename DataType, int NumPE>
 DataType adder_tree(DataType x[NumPE]) {
 #pragma HLS ARRAY_PARTITION variable=x complete // to force II=1

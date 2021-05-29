@@ -1,6 +1,8 @@
 #ifndef DQNET_DQNET_H_
 #define DQNET_DQNET_H_
 
+#include "ap_shift_reg.h"
+
 #include "dqnet/dqnet_params.h"
 #include "dqnet/conv_layer.h"
 #include "dqnet/dense_layer.h"
@@ -8,8 +10,125 @@
 
 int DQNetCall(const ActivationType *fm_in);
 
-// TODO: Add templated image size parameters.
-template <int C = IMAGE_C, int W = IMAGE_W, int H = IMAGE_H>
+class DQNetSyn {
+public:
+  typedef dqnet_param dqnetp;
+
+  DQNetSyn(const dqnetp::Dw* dmem) {
+    this->_next_frame_ptr = 0;
+    MemoryManager mem_manager;
+    int offset = 0;
+    mem_manager.memcpy(dmem, conv1_w);
+    offset += dqnetp::conv1::weight_size;
+    mem_manager.memcpy(dmem + offset, conv1_b);
+    offset += dqnetp::conv1::bias_size;
+    mem_manager.memcpy(dmem + offset, conv2_w);
+    offset += dqnetp::conv2::weight_size;
+    mem_manager.memcpy(dmem + offset, conv2_b);
+    offset += dqnetp::conv2::bias_size;
+    mem_manager.memcpy(dmem + offset, conv3_w);
+    offset += dqnetp::conv3::weight_size;
+    mem_manager.memcpy(dmem + offset, conv3_b);
+    offset += dqnetp::conv3::bias_size;
+    mem_manager.memcpy(dmem + offset, dense1_w);
+    offset += dqnetp::dense1::weight_size;
+    mem_manager.memcpy(dmem + offset, dense1_b);
+    offset += dqnetp::dense1::bias_size;
+    mem_manager.memcpy(dmem + offset, dense2_w);
+    offset += dqnetp::dense2::weight_size;
+    mem_manager.memcpy(dmem + offset, dense2_b);
+    Init_FM_In:
+    for (int i = 0; i < dqnetp::conv1::C_in; ++i) {
+      for (int j = 0; j < dqnetp::conv1::W_in; ++j) {
+        for (int k = 0; k < dqnetp::conv1::H_in; ++k) {
+#pragma HLS PIPELINE II=1
+          fmi[i][j][k] = 0;
+        }
+      }
+    }
+  }
+  ~DQNetSyn() {};
+
+  template <typename T>
+  void load_frame(const T* fm_in) {
+#pragma HLS INLINE
+    InDMA:
+    for (int i = 0; i < dqnetp::conv1::C_in; ++i) {
+      for (int j = 0; j < dqnetp::conv1::W_in; ++j) {
+        for (int k = 0; k < dqnetp::conv1::H_in; ++k) {
+#pragma HLS PIPELINE II=1
+          const int i_idx = i * dqnetp::conv1::W_in * dqnetp::conv1::H_in + i * dqnetp::conv1::W_in + k;
+          fmi[this->_next_frame_ptr][j][k] = fm_in[i_idx] == 0 ? 0 : 255;
+        }
+      }
+    }
+    // Push next index into shift reg and then update pointer.
+    this->_frame_ptr.shift(this->_next_frame_ptr);
+    this->_next_frame_ptr = (this->_next_frame_ptr + 1) % dqnetp::conv1::C_in;
+  }
+
+  template <typename T>
+  void load_frame(const T* fm_in, int frame_ptr[dqnetp::conv1::C_in]) {
+#pragma HLS INLINE
+    this->load_frame(fm_in);
+    for (int i = 0; i < dqnetp::conv1::C_in; ++i) {
+#pragma HLS UNROLL factor=dqnetp::conv1::C_in
+      frame_ptr[i] = this->_frame_ptr.read(i);
+    }
+  }
+
+  template <typename T>
+  int call(const T* fm_in) {
+#pragma HLS INLINE
+    int frame_ptr[dqnetp::conv1::C_in];
+    this->load_frame(fm_in, frame_ptr);
+    C1: Convolution2D<dqnetp::conv1>(fmi, conv1_w, conv1_b, fm1, frame_ptr);
+    C2: Convolution2D<dqnetp::conv2>(fm1, conv2_w, conv2_b, fm2);
+    C3: Convolution2D<dqnetp::conv3>(fm2, conv3_w, conv3_b, fm3);
+    D1: FlattenDense<dqnetp::conv3, dqnetp::dense1>(fm3, dense1_w, dense1_b, fm4);
+    D2: Dense<dqnetp::dense2>(fm4, dense2_w, dense2_b, fm5);
+    dqnetp::Dout max_val = -(1 << (sizeof(dqnetp::Dout) * 8 - 1));
+    int max_idx = 0;
+    // max_val = fm5[0];
+    MaxOut:
+    for (int i = 0; i < dqnetp::dense2::L_out; ++i) {
+#pragma HLS PIPELINE II=1
+      if (fm5[i] > max_val) {
+        max_val = fm5[i];
+        max_idx = i;
+      }
+    }
+    return max_idx;
+  }
+
+private:
+  int _next_frame_ptr;
+  static ap_shift_reg<int, dqnetp::conv1::C_in> _frame_ptr;
+  // Weights
+  static dqnetp::Dw conv1_w[dqnetp::conv1::C_out][dqnetp::conv1::C_in][dqnetp::conv1::K][dqnetp::conv1::K];
+  static dqnetp::Dw conv2_w[dqnetp::conv2::C_out][dqnetp::conv2::C_in][dqnetp::conv2::K][dqnetp::conv2::K];
+  static dqnetp::Dw conv3_w[dqnetp::conv3::C_out][dqnetp::conv3::C_in][dqnetp::conv3::K][dqnetp::conv3::K];
+  static dqnetp::Dw dense1_w[dqnetp::dense1::L_out][dqnetp::dense1::L_in];
+  static dqnetp::Dw dense2_w[dqnetp::dense2::L_out][dqnetp::dense2::L_in];
+  // Biases
+  static dqnetp::Dw conv1_b[dqnetp::conv1::C_out];
+  static dqnetp::Dw conv2_b[dqnetp::conv2::C_out];
+  static dqnetp::Dw conv3_b[dqnetp::conv3::C_out];
+  static dqnetp::Dw dense1_b[dqnetp::dense1::L_out];
+  static dqnetp::Dw dense2_b[dqnetp::dense2::L_out];
+  // Feature maps
+  static dqnetp::Din fmi[dqnetp::conv1::C_in][dqnetp::conv1::W_in][dqnetp::conv1::H_in];
+  static dqnetp::Din fm1[dqnetp::conv1::C_out][dqnetp::conv1::W_out][dqnetp::conv1::H_out];
+  static dqnetp::Din fm2[dqnetp::conv2::C_out][dqnetp::conv2::W_out][dqnetp::conv2::H_out];
+  static dqnetp::Din fm3[dqnetp::conv3::C_out][dqnetp::conv3::W_out][dqnetp::conv3::H_out];
+  static dqnetp::Din fm4[dqnetp::dense1::L_out];
+  static dqnetp::Din fm5[dqnetp::dense2::L_out];
+};
+
+
+
+
+template <int C, int W, int H>
 class DQNet {
 public:
 
@@ -18,6 +137,7 @@ public:
   typedef ConvParams<64, 3, 2, conv2::C_out, conv2::W_out, conv2::H_out, 0, ActivationType, ActivationType, WeightType> conv3;
   typedef DenseParams<conv3::C_out * conv3::W_out * conv3::H_out, 128, ActivationType, ActivationType, WeightType> dense1;
   typedef DenseParams<dense1::L_out, 3, ActivationType, ActivationType, WeightType> dense2;
+
 private:
   // Weights
   WeightType conv1_w[conv1::C_out][conv1::C_in][conv1::K][conv1::K];
@@ -40,12 +160,12 @@ private:
   ActivationType fm5[dense2::L_out];
 public:
   DQNet(const WeightType* dmem) {
-#pragma HLS RESOURCE variable=fmi core=RAM_2P_BRAM
-#pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
-#pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
-#pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
-#pragma HLS RESOURCE variable=fm4 core=RAM_2P_BRAM
-#pragma HLS RESOURCE variable=fm5 core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fmi core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fm1 core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fm2 core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fm3 core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fm4 core=RAM_2P_BRAM
+// #pragma HLS RESOURCE variable=fm5 core=RAM_2P_BRAM
     MemoryManager mem_manager;
     int offset = 0;
     mem_manager.memcpy(dmem, conv1_w);

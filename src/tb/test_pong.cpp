@@ -1,13 +1,15 @@
 #include "tb/test_pong.h"
 #include "hls_opencv.h"
 #include <cstdlib>
+#include <iostream>
 
 int main(int argc, char const *argv[]) {
-  int num_test_steps = 16;
-  WeightType* dmem = new WeightType[HlsPongParams::DQNetType::size];
-  for (int i = 0; i < HlsPongParams::DQNetType::size; ++i) {
+  int num_test_steps = 4;
+  WeightType* dmem = new WeightType[HlsPongParams::DQNetType::dqnetp::size];
+  for (int i = 0; i < HlsPongParams::DQNetType::dqnetp::size; ++i) {
     dmem[i] = WeightType(rand());
   }
+  std::cout << "[INFO] Num DSPs required: " << HlsPongParams::DQNetType::dqnetp::num_dsps_required << std::endl;
   AxiStreamRGB output_stream;
   HlsPongParams::OutImageType output_img;
   cv::Mat output_cv_img = cv::Mat(HlsPongParams::H_out, HlsPongParams::W_out, CV_8UC1);
